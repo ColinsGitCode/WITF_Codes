@@ -14,7 +14,7 @@ def git_push(head = "master"):
     local(cmd)
 
 def push(des = "default descriptions", head = "master"):
-    local("cp ~/.vimrc VIMRC")
+    #local("cp ~/.vimrc VIMRC")
     git_add()
     git_commit(des)
     git_push(head)
@@ -22,7 +22,7 @@ def push(des = "default descriptions", head = "master"):
 def pull(head = "master"):
     cmd = "git pull origin " + head
     local(cmd)
-    local("cp VIMRC ~/.vimrc")
+    # local("cp VIMRC ~/.vimrc")
 #    local("rm -rf __pycache__")
 
 
