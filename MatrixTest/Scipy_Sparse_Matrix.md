@@ -13,9 +13,12 @@
 - ```spmatrix```
 
 ### Functions
-- ```eye```, ```identity```
+- ```eye```, ```identity```, ```diags```, ```spdiags```
 
-#### 
+#### Importants
+- ```kron``` : kronecker product of sparse matrices A and B
+- ```kronsum``` : kronecker sum of sparse matrices A and B
+- ```
 
 
 ## References
