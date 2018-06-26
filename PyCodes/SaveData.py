@@ -1,18 +1,15 @@
-# Python3 
-# Filename : SaveData.py
-# Usages : Save Data at local disks
-
 import pickle
 
-def SaveToTxt(Data, filename):
-    f = open(filename, 'wb')
-    pickle.dump(Data, filename)
-    f.close()
+def save_to_txt(data, filename):
+    ''' Function to Save variables to TXT files '''
+    file_open = open(filename, 'wb')
+    pickle.dump(data, file_open)
+    file_open.close()
     return True
 
-def LoadFromTxt(filename):
-    f = open(filename, 'rb')
-    Data = pickle.load(f)
-    f.close()
-    return Data
-    
+def load_from_txt(filename):
+    ''' Function to Load variables from TXT files '''
+    file_open = open(filename, 'rb')
+    data = pickle.load(file_open)
+    file_open.close()
+    return data
