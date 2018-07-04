@@ -16,10 +16,12 @@ class TensorIrr:
         __init__ function to load the txt data files 
         '''
         self.two_more_ratings_users_dic = \
-        load_from_txt("TwoMoreRatingsUsers.txt")
-        self.userIDs_pos = load_from_txt("TwoRatingsUsersPosMap.txt")
-        self.selected_five_category = load_from_txt("FiveSelectdCategories.txt")
+        load_from_txt("../txtData/TwoMoreRatingsUsers.txt")
+        self.userIDs_pos = load_from_txt("../txtData/TwoRatingsUsersPosMap.txt")
+        self.selected_five_category = load_from_txt("../txtData/FiveSelectdCategories.txt")
         self.sparse_matrix_dic = {}
+        self.user_has_2more_ratings_in_all_categores = {}
+        self.user_not_has_2more_ratings_in_all_categores = {}
 
     def init_sparse_matrix(self):
         '''
@@ -62,8 +64,37 @@ class TensorIrr:
                     % (user_cateID, userID, user_pos, itemID, item_pos))
         return True
 
+    def get_two_ratings_users_in_all_categories(self):
+        '''
+        To Extract the users who has at least 2 ratings in each selected categories
+        '''
+        for userID in self.two_more_ratings_users_dic:
+            print("Processing User.NO : %d" %userID)
+            # get all ratings for a user
+            user = self.two_more_ratings_users_dic[userID]
+            # The bool flag for weather remain this user, default is True
+            remain_flag = True
+            for cateID in user:
+                # get all ratings in a category for the user
+                cate = user[cateID]
+                # if the user has 2 more ratings in the catogory, the remainFlag is true
+                if len(cate) >= 2:
+                    pass
+                else:
+                    remain_flag = False
+                    continue
+            
+            # check whether save the user
+            if remain_flag:
+                self.user_has_2more_ratings_in_all_categores[userID] = user
+                print("Remain User.NO : %d" %userID)
+            else:
+                self.user_not_has_2more_ratings_in_all_categores[userID] = user
+                print("Delete User.NO : %d" %userID)
 
-
+        print("Processed all users, WORK DONE")
+        
+        return True
 
 
 # ------------------------------------------------------------------------------
@@ -90,3 +121,13 @@ def CreateSparseDokMatrix(row,col):
 # main parts
 # -----------------------------------------------------------------------------
 tensor = TensorIrr()
+tensor.get_two_ratings_users_in_all_categories()
+filename1 = "../txtData/UsersHas2MoreRatingsInAllCategoires.txt"
+save_to_txt(tensor.user_has_2more_ratings_in_all_categores,filename1)
+filename2 = "../txtData/Users_NOT_Has2MoreRatingsInAllCategoires.txt"
+save_to_txt(tensor.user_not_has_2more_ratings_in_all_categores,filename2)
+print("Saved all data")
+
+
+
+# ------------- THE END -----------------------------------------------
