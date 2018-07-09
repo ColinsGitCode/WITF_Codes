@@ -274,9 +274,11 @@ class TensorIrr:
         combine all sparse matrix and userID index and ItemID index
         and return it as a dictionary
         """
-        self.WITF_raw_data["userPos"] = self.userIDs_pos_10ratings
+        self.WITF_raw_data["userPos"] = self.userIDs_pos
+        #self.WITF_raw_data["userPos"] = self.userIDs_pos_10ratings
         self.WITF_raw_data["itemPos"] = self.selected_five_category
         self.WITF_raw_data["matrix"] = self.sparse_matrix_dic
+        self.WITF_raw_data["blankCol"] = self.userPos_blank_itemPos
         return True
 
 
@@ -307,16 +309,16 @@ def CreateSparseDokMatrix(row,col):
 
 tensor = TensorIrr()
 #tensor.get_two_ratings_users_in_all_categories()
-#tensor.init_sparse_matrix()
-#tensor.update_sparse_matrix()
+tensor.init_sparse_matrix_from_txtData()
+tensor.update_sparse_matrix_from_txtData()
 #tensor.combine_matrix_userPos_ItemPos()
 #filename1 = "../txtData/UsersHas2MoreRatingsInAllCategoires.txt"
 #save_to_txt(tensor.user_has_2more_ratings_in_all_categores,filename1)
 #filename2 = "../txtData/Users_NOT_Has2MoreRatingsInAllCategoires.txt"
 #save_to_txt(tensor.user_not_has_2more_ratings_in_all_categores,filename2)
-#filename3 = "../txtData/WITF_raw_data_5_domains.txt"
-#save_to_txt(tensor.WITF_raw_data,filename3)
-#print("Saved all data")
+filename3 = "/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt"
+save_to_txt(tensor.WITF_raw_data,filename3)
+print("Saved all data")
 
 
 
