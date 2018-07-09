@@ -8,13 +8,13 @@ from scipy.sparse import dok_matrix
 from scipy.sparse import coo_matrix
 
 from SaveData import *
-from TensorIrr import *
+#from TensorIrr import *
 from functionDrafts import *
 
 class WITF:
     ''' Class for the WITF model '''
     
-    def __init__(self):
+    def __init__(self,target_cateID=4,ratios=0.8):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -25,21 +25,26 @@ class WITF:
          3. itemID postion : key --> "itemPos", value --> TensorIrr.selected_five_category(dic)
                 ----> selected_five_category : key --> categoryID, value --> ("cate_name", nparray([itemID1,..])
         """
+        self.target_cateID = target_cateID
+        self.ratios = ratios
         self.raw_data = \
-        load_from_txt("../txtData/WITF_raw_data_5_domains.txt")
+        load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
         self.userPos_li = self.raw_data["userPos"]
         self.itemPos_dic = self.raw_data["itemPos"]
         self.raw_sparMats_dic = self.raw_data["matrix"]
+        self.blank_cols = self.raw_data["blankCol"]
         # the train dataset = 
         # { "target_cateID" : target_cateID, "ratio" : Ratios, "matrix" : sparMats_dic}
         self.training_sparMats_dic = { "target_cateID" : 0, "ratio" : 0, \
-                                       "matrix" : self.raw_sparMats_dic }
+                                       "matrix" : {} }
         # the test dataset = 
         # { "target_cateID" : target_cateID, "ratio" : Ratios, "datalist" : [(row,col,ratings),... ]}
+        #self.test_data_dic = { "target_cateID" : 0, "ratio" : 0, \
+        #                               "datalist" : [ ] }
         self.test_data_dic = { "target_cateID" : 0, "ratio" : 0, \
-                                       "datalist" : [ ] }
+                                       "dataDic" : {} }
 
-    def main_proceduce(self,target_cateID,train_data_ratio):
+    def main_proceduce(self):
         """
            The main_proceduce for the WITF model
            Parameter : target_cateID --> choose which category as the target category 
@@ -47,9 +52,9 @@ class WITF:
         """
         # 1. Data Preparation
         # 1.1 training data and test data ratios --> function : split_data_byRatios(self,data_ratio)
-        self.split_data_byRatios(target_cateID,train_data_ratio)
+        self.split_data_byRatios()
         print("Finished SPLIT training and test dataset with target_cateID: %d and Ratios: %d Precentages!" \
-                 %(target_cateID, 100*train_data_ratio))
+                 %(self.target_cateID, 100*self.ratios))
         # 1.2 Add virtual data (nosies) into nosies
         #     ---> Function : add_noises(self)
 
@@ -58,12 +63,16 @@ class WITF:
     def add_noises(self):
         pass
 
-    def split_data_byRatios(self,target_cateID,ratios):
+    def split_data_byRatios(self):
         """
             split the training data and test data by ratio and target_cateID
         """
+        target_cateID = self.target_cateID
+        ratios = self.ratios
+        self.test_data_dic["dataDic"] = { }
         self.training_sparMats_dic["target_cateID"] = target_cateID
         self.training_sparMats_dic["ratio"] = ratios
+        self.training_sparMats_dic["matrix"] = self.raw_sparMats_dic
         self.test_data_dic["target_cateID"] = target_cateID
         self.test_data_dic["ratio"] = ratios
         target_sparMat = self.raw_sparMats_dic[target_cateID]
@@ -77,8 +86,9 @@ class WITF:
             rating = target_sparMat[row,col]
             # the randomly select data is deleted(changed to 0 ??)
             target_sparMat[row,col] = 0
+            self.test_data_dic["dataDic"][(row,col)] = rating
             # update a element into test data
-            self.test_data_dic["datalist"].append((row,col,rating))
+            # self.test_data_dic["datalist"].append((row,col,rating))
         self.training_sparMats_dic["matrix"][target_cateID] = target_sparMat
         return True
 
@@ -86,4 +96,5 @@ class WITF:
 #   Main Fucntions
 # ================================================================================================
 witf = WITF()
-print("Just create a WITF class object witf!")
+#witf.main_proceduce()
+#print("Just create a WITF class object witf!")

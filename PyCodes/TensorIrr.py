@@ -311,7 +311,7 @@ tensor = TensorIrr()
 #tensor.get_two_ratings_users_in_all_categories()
 tensor.init_sparse_matrix_from_txtData()
 tensor.update_sparse_matrix_from_txtData()
-#tensor.combine_matrix_userPos_ItemPos()
+tensor.combine_matrix_userPos_ItemPos()
 #filename1 = "../txtData/UsersHas2MoreRatingsInAllCategoires.txt"
 #save_to_txt(tensor.user_has_2more_ratings_in_all_categores,filename1)
 #filename2 = "../txtData/Users_NOT_Has2MoreRatingsInAllCategoires.txt"
