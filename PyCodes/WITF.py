@@ -33,6 +33,7 @@ class WITF:
         load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
         self.userPos_li = self.raw_data["userPos"]
         self.itemPos_dic = self.raw_data["itemPos"]
+        self.all_blank_pos_dic = { }
         self.raw_sparMats_dic = self.raw_data["matrix"]
         self.blank_cols = self.raw_data["blankCol"]
         # the train dataset = 
@@ -74,7 +75,10 @@ class WITF:
             mu_k = self.trainSets_stats_dic[cateID]["mu_k"]
             sigma = self.trainSets_stats_dic[cateID]["sigma"]
             for user_pos in range(len(self.userPos_li)):
-                selectd_blanks = random.sample(self.blank_cols[user_pos][cateID], self.noiseCount)
+                try:
+                    selectd_blanks = random.sample(self.blank_cols[user_pos][cateID], self.noiseCount)
+                except KeyError:
+                    selectd_blanks = random.sample(self.all_blank_pos_dic[cateID],self.noiseCount)
                 #selectd_blanks = random.sample(self.userPos_li[user_pos][cateID], self.noiseCount)
                 noise_li = np.random.normal(mu_k,sigma,self.noiseCount)
                 for index in range(self.noiseCount):
@@ -86,6 +90,7 @@ class WITF:
 
     def cal_stats_for_trainSets(self):
         for cateID in self.training_sparMats_dic["matrix"]:
+            self.all_blank_pos_dic[cateID] = [ ]
             self.trainSets_stats_dic[cateID] = { }
             sparMat = self.training_sparMats_dic["matrix"][cateID]
             mean_mats = (sparMat.sum())//(len(sparMat.nonzero()[0]))
@@ -98,6 +103,11 @@ class WITF:
             self.trainSets_stats_dic[cateID]["mean"] = mean_mats
             self.trainSets_stats_dic[cateID]["mu_k"] = mean_mats
             self.trainSets_stats_dic[cateID]["sigma"] = sigma
+            itemCount = len(self.itemPos_dic[cateID][1])
+            itemPos_li = [ ]
+            for itemPos in range(itemCount):
+                itemPos_li.append(itemPos)
+            self.all_blank_pos_dic[cateID] = itemPos_li
         return True
 
     def split_data_byRatios(self):
