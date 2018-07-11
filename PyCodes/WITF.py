@@ -2,6 +2,7 @@
 # Filename: WITF.py
 # Usages : WITF model codes
 
+import random
 import numpy as np
 import scipy
 from scipy.sparse import dok_matrix
@@ -14,7 +15,7 @@ from functionDrafts import *
 class WITF:
     ''' Class for the WITF model '''
     
-    def __init__(self,target_cateID=4,ratios=0.8):
+    def __init__(self,target_cateID=4,ratios=0.8,noiseCount=10):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -27,6 +28,7 @@ class WITF:
         """
         self.target_cateID = target_cateID
         self.ratios = ratios
+        self.noiseCount = noiseCount
         self.raw_data = \
         load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
         self.userPos_li = self.raw_data["userPos"]
@@ -36,13 +38,17 @@ class WITF:
         # the train dataset = 
         # { "target_cateID" : target_cateID, "ratio" : Ratios, "matrix" : sparMats_dic}
         self.training_sparMats_dic = { "target_cateID" : 0, "ratio" : 0, \
-                                       "matrix" : {} }
+                                       "matrix" : {} ,"noise" : False}
         # the test dataset = 
         # { "target_cateID" : target_cateID, "ratio" : Ratios, "datalist" : [(row,col,ratings),... ]}
         #self.test_data_dic = { "target_cateID" : 0, "ratio" : 0, \
         #                               "datalist" : [ ] }
         self.test_data_dic = { "target_cateID" : 0, "ratio" : 0, \
                                        "dataDic" : {} }
+        # save the mean, mu_k, sigma for each category
+        # DS : self.trainSets_stats_dic = 
+        #            { categoryID : { "mean": mean_value, "mu_k" : mu_k, "sigma" : sigma},...}
+        self.trainSets_stats_dic = { }
 
     def main_proceduce(self):
         """
@@ -58,10 +64,41 @@ class WITF:
         # 1.2 Add virtual data (nosies) into nosies
         #     ---> Function : add_noises(self)
 
-        pass
+        return True
 
     def add_noises(self):
-        pass
+        """
+            add noises(virtual data) for each user in each category
+        """
+        for cateID in self.training_sparMats_dic["matrix"]:
+            mu_k = self.trainSets_stats_dic[cateID]["mu_k"]
+            sigma = self.trainSets_stats_dic[cateID]["sigma"]
+            for user_pos in range(len(self.userPos_li)):
+                selectd_blanks = random.sample(self.blank_cols[user_pos][cateID], self.noiseCount)
+                #selectd_blanks = random.sample(self.userPos_li[user_pos][cateID], self.noiseCount)
+                noise_li = np.random.normal(mu_k,sigma,self.noiseCount)
+                for index in range(self.noiseCount):
+                    blank_col = selectd_blanks[index]
+                    noise = noise_li[index]
+                    self.training_sparMats_dic["matrix"][cateID][user_pos,blank_col] = noise
+        self.training_sparMats_dic["noise"] = True
+        return True
+
+    def cal_stats_for_trainSets(self):
+        for cateID in self.training_sparMats_dic["matrix"]:
+            self.trainSets_stats_dic[cateID] = { }
+            sparMat = self.training_sparMats_dic["matrix"][cateID]
+            mean_mats = (sparMat.sum())//(len(sparMat.nonzero()[0]))
+            if mean_mats == 4:
+                sigma = 0.5
+            elif mean_mats == 3:
+                sigma = 1
+            else:
+                sigma = 0.5
+            self.trainSets_stats_dic[cateID]["mean"] = mean_mats
+            self.trainSets_stats_dic[cateID]["mu_k"] = mean_mats
+            self.trainSets_stats_dic[cateID]["sigma"] = sigma
+        return True
 
     def split_data_byRatios(self):
         """
