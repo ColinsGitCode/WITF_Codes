@@ -15,7 +15,7 @@ from functionDrafts import *
 class WITF:
     ''' Class for the WITF model '''
     
-    def __init__(self,target_cateID=4,ratios=0.8,noiseCount=10):
+    def __init__(self,target_cateID=4,ratios=0.8,noiseCount=10,add_noise_times=5):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -26,30 +26,68 @@ class WITF:
          3. itemID postion : key --> "itemPos", value --> TensorIrr.selected_five_category(dic)
                 ----> selected_five_category : key --> categoryID, value --> ("cate_name", nparray([itemID1,..])
         """
+        # ****************************************************************************
+        # 基本配置常量
         self.target_cateID = target_cateID
         self.ratios = ratios
         self.noiseCount = noiseCount
+        self.add_noise_times = add_noise_times
+        # ****************************************************************************
+        # ****************************************************************************
+        # 读取由 TensorIrr产生的数据(txt files)
+        # self.raw_data.keys() : userPos, itemPos, matrix, ratingsPos
         self.raw_data = \
         load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
+        # ****************************************************************************
+        # ****************************************************************************
+        # 任意分类有两个以上分类的用户ID的排序列表
+        # self.userPos_li = [userID1, userID2, ..., userID307704 ](sorted)(20338)
         self.userPos_li = self.raw_data["userPos"]
+        # ****************************************************************************
+        # ****************************************************************************
+        # 选择的五个分类的所有的itemID, 保存在nparray中
+        # DS : self.itemPos_dic = 
+        #            { cateID : ("cate_name" , ndarray[itemID,itemID,...](sorted)), ... }
         self.itemPos_dic = self.raw_data["itemPos"]
-        self.all_blank_pos_dic = { }
+        # ****************************************************************************
+        # ****************************************************************************
         self.raw_sparMats_dic = self.raw_data["matrix"]
-        self.blank_cols = self.raw_data["blankCol"]
+        # ****************************************************************************
+        # ****************************************************************************
+        # 保存每个用户的评分的(ratings_postions)位置
+        # DS : self.userPos_ratings_itemPos = 
+        #              {userPos : {cateID : (bool, [RatingItemsPos1, RatingItemsPos2, ...](sorted) ), ...}, ... }
+        self.userPos_ratings_itemPos = self.raw_data["ratingPos"]
+        # ****************************************************************************
+        # ****************************************************************************
+        #  self.blank_cols = self.raw_data["blankCol"]
         # the train dataset = 
         # { "target_cateID" : target_cateID, "ratio" : Ratios, "matrix" : sparMats_dic}
         self.training_sparMats_dic = { "target_cateID" : 0, "ratio" : 0, \
                                        "matrix" : {} ,"noise" : False}
+        # ****************************************************************************
+        # ****************************************************************************
         # the test dataset = 
         # { "target_cateID" : target_cateID, "ratio" : Ratios, "datalist" : [(row,col,ratings),... ]}
         #self.test_data_dic = { "target_cateID" : 0, "ratio" : 0, \
         #                               "datalist" : [ ] }
         self.test_data_dic = { "target_cateID" : 0, "ratio" : 0, \
                                        "dataDic" : {} }
+        # ****************************************************************************
+        # ****************************************************************************
         # save the mean, mu_k, sigma for each category
         # DS : self.trainSets_stats_dic = 
-        #            { categoryID : { "mean": mean_value, "mu_k" : mu_k, "sigma" : sigma},...}
+        #            { categoryID : { "mean": mean_value, "mu_k" : mu_k, "sigma" : sigma}
+        #                             "allItemPos" : { itemPos: True, ... },...}
         self.trainSets_stats_dic = { }
+        # ****************************************************************************
+        # ****************************************************************************
+        # self.user_noisePos = { user_pos : {cateID : [[ ],[ ], ... ], ... }, ... }
+        self.user_noisePos = { }
+        # ****************************************************************************
+        # 无用的变量
+        self.all_blank_pos_dic = { }
+        self.blank_cols = { }
 
     def main_proceduce(self):
         """
@@ -57,17 +95,70 @@ class WITF:
            Parameter : target_cateID --> choose which category as the target category 
                        train_data_ratio --> set the ratio(%) for the training data and test data
         """
-        # 1. Data Preparation
-        # 1.1 training data and test data ratios --> function : split_data_byRatios(self,data_ratio)
         self.split_data_byRatios()
         print("Finished SPLIT training and test dataset with target_cateID: %d and Ratios: %d Precentages!" \
                  %(self.target_cateID, 100*self.ratios))
-        # 1.2 Add virtual data (nosies) into nosies
-        #     ---> Function : add_noises(self)
+        self.cal_stats_for_trainSets()
+        print("Finished calculate the stats for trianing datasets!")
+        self.cal_users_noisePos()
+        
+        return True
 
+    def cal_users_noisePos(self):
+        """
+            The function to calculate the noises postions for each user in each category
+        """
+        for user_pos in self.userPos_ratings_itemPos:
+            self.user_noisePos[user_pos] = { }
+            ratingPos_dic = self.userPos_ratings_itemPos[user_pos]
+            for cateID in ratingPos_dic:
+                self.user_noisePos[user_pos][cateID] = [ ]
+                rating_cateID = ratingPos_dic[cateID]
+                if rating_cateID[0] is False:
+                    for time in range(self.add_noise_times):
+                        selectedPos = random.sample(self.trainSets_stats_dic[cateID]["allItemPos"].keys(),self.noiseCount)
+                        self.user_noisePos[user_pos][cateID].append(selectedPos)
+                else:
+                    userPos_rating_cateID = self.userPos_ratings_itemPos[user_pos][cateID][1]
+                    all_itemPos_cateID_dic = self.trainSets_stats_dic[cateID]["allItemPos"]
+                    for itemPos in userPos_rating_cateID:
+                        try:
+                            del all_itemPos_cateID_dic[itemPos]
+                        except KeyError:
+                            pass
+                    blankPos = sorted(all_itemPos_cateID_dic.keys())
+                    for time in range(self.add_noise_times):
+                        selectedPos = random.sample(blankPos,self.noiseCount)
+                        self.user_noisePos[user_pos][cateID].append(selectedPos)
+                print("Finished calculate %d group users noises postions for userPos:%d in cateID:%d!" %(self.add_noise_times,user_pos,cateID)) 
+            print("Finished userPos:%d <--------------------> " %user_pos)
+        print("Finshed cal_users_noisePos() functions!!!")
         return True
 
     def add_noises(self):
+        """
+            add noises(virtual data) for each user in each category
+        """
+        for cateID in self.training_sparMats_dic["matrix"]:
+            mu_k = self.trainSets_stats_dic[cateID]["mu_k"]
+            sigma = self.trainSets_stats_dic[cateID]["sigma"]
+            for user_pos in range(len(self.userPos_li)):
+                #  try:
+                    #  selectd_blanks = random.sample(self.blank_cols[user_pos][cateID], self.noiseCount)
+                #  except KeyError:
+                    #  selectd_blanks = random.sample(self.all_blank_pos_dic[cateID],self.noiseCount)
+                #selectd_blanks = random.sample(self.userPos_li[user_pos][cateID], self.noiseCount)
+                selectedPos = self.user_noisePos[user_pos][cateID][0]
+                noise_li = np.random.normal(mu_k,sigma,self.noiseCount)
+                for index in range(self.noiseCount):
+                    blank_col = selectedPos[index]
+                    #  blank_col = selectd_blanks[index]
+                    noise = noise_li[index]
+                    self.training_sparMats_dic["matrix"][cateID][user_pos,blank_col] = noise
+        self.training_sparMats_dic["noise"] = True
+        return True
+
+    def add_noises_verion_1(self):
         """
             add noises(virtual data) for each user in each category
         """
@@ -89,6 +180,33 @@ class WITF:
         return True
 
     def cal_stats_for_trainSets(self):
+        for cateID in self.training_sparMats_dic["matrix"]:
+            #  self.all_blank_pos_dic[cateID] = [ ]
+            self.trainSets_stats_dic[cateID] = { }
+            #  self.cateID_itemPos_dic[cateID] = { }
+            sparMat = self.training_sparMats_dic["matrix"][cateID]
+            mean_mats = (sparMat.sum())//(len(sparMat.nonzero()[0]))
+            if mean_mats == 4:
+                sigma = 0.5
+            elif mean_mats == 3:
+                sigma = 1
+            else:
+                sigma = 0.5
+            self.trainSets_stats_dic[cateID]["mean"] = mean_mats
+            self.trainSets_stats_dic[cateID]["mu_k"] = mean_mats
+            self.trainSets_stats_dic[cateID]["sigma"] = sigma
+            itemCount = len(self.itemPos_dic[cateID][1])
+            # 用于存储所有itemPos的字典
+            itemPos_dic = { }
+            for itemPos in range(itemCount):
+                #  itemPos_li.append(itemPos)
+                itemPos_dic[itemPos] = True
+            #  self.cateID_itemPos_dic[cateID] = itemPos_dic
+            self.trainSets_stats_dic[cateID]["allItemPos"] = itemPos_dic
+            #  self.all_blank_pos_dic[cateID] = itemPos_li
+        return True
+
+    def bak_cal_stats_for_trainSets(self):
         for cateID in self.training_sparMats_dic["matrix"]:
             self.all_blank_pos_dic[cateID] = [ ]
             self.trainSets_stats_dic[cateID] = { }
@@ -143,5 +261,5 @@ class WITF:
 #   Main Fucntions
 # ================================================================================================
 witf = WITF()
-#witf.main_proceduce()
+witf.main_proceduce()
 #print("Just create a WITF class object witf!")
