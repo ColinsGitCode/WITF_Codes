@@ -5,8 +5,13 @@
 import random
 import numpy as np
 import scipy
+
 from scipy.sparse import dok_matrix
 from scipy.sparse import coo_matrix
+from scipy.sparse import identity as SM_identity
+from scipy.sparse import random as SM_random
+from scipy.sparse import diags as SM_diags
+from scipy.sparse.linalg import svds as SSL_svds
 
 from SaveData import *
 #from TensorIrr import *
@@ -15,7 +20,7 @@ from functionDrafts import *
 class WITF:
     ''' Class for the WITF model '''
     
-    def __init__(self,target_cateID=4,ratios=0.8,noiseCount=10,add_noise_times=5):
+    def __init__(self,target_cateID=4,ratios=0.8,noiseCount=2,add_noise_times=5,R_latent_feature_Num=5):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -32,6 +37,7 @@ class WITF:
         self.ratios = ratios
         self.noiseCount = noiseCount
         self.add_noise_times = add_noise_times
+        self.R_latent_feature_Num = R_latent_feature_Num
         # ****************************************************************************
         # ****************************************************************************
         # 读取由 TensorIrr产生的数据(txt files)
@@ -85,6 +91,11 @@ class WITF:
         # self.user_noisePos = { user_pos : {cateID : [[ ],[ ], ... ], ... }, ... }
         self.user_noisePos = { }
         # ****************************************************************************
+        # ****************************************************************************
+        # Save Constrant {Pk} for each category
+        # self.P_k_dic = { cateID : matrix P_k , ... }
+        self.P_k_dic = { }
+        # ****************************************************************************
         # 无用的变量
         self.all_blank_pos_dic = { }
         self.blank_cols = { }
@@ -101,7 +112,75 @@ class WITF:
         self.cal_stats_for_trainSets()
         print("Finished calculate the stats for trianing datasets!")
         self.cal_users_noisePos()
-        
+        self.randomly_init_U_C_V()
+        print("Finshed randomly_init_U_C_V() Functions")
+        self.find_Pk()
+        print("Finshed find_Pk() Functions")
+        self.save_PreComputed_data()
+        print("Finshed save_PreComputed_data() Functions")
+        return True
+
+    def save_PreComputed_data(self):
+        """
+            save the pre-computed data as txt files for WITF_Iterations class
+        """
+        saveData = { }
+        saveData["trainSets"] = self.training_sparMats_dic
+        saveData["testSets"] = self.test_data_dic
+        saveData["targetCateID"] = self.target_cateID
+        saveData["ratios"] = self.ratios
+        saveData["noiseCount"] = self.noiseCount
+        saveData["R_sizes"] = self.R_latent_feature_Num
+        saveData["userPos"] = self.userPos_li
+        saveData["itemPos"] = self.itemPos_dic
+        saveData["trainSetStats"] = self.trainSets_stats_dic
+        saveData["noisePos"] = self.user_noisePos
+        saveData["P_k"] = self.P_k_dic
+        saveData["U"] = self.U_Mats
+        saveData["V"] = self.V_Mats
+        saveData["C"] = self.C_Mats
+        filename = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
+        save_to_txt(saveData,filename)
+        return True
+
+    def find_Pk(self):
+        """
+            Calculate the constrant Pk for each category by SVD
+        """
+        catelist = self.training_sparMats_dic["matrix"].keys()
+        cate_list = [ ]
+        for key in catelist:
+            cate_list.append(key)
+        for cate_index in range(len(catelist)):
+        #  for cateID in self.training_sparMats_dic["matrix"]:
+            cateID = cate_list[cate_index]
+            X_k = self.training_sparMats_dic["matrix"][cateID]
+            C_k_row = self.C_Mats.getrow(cate_index).toarray()[0]
+            Sigma_k = SM_diags(C_k_row)
+            SVD_mats = X_k.T
+            SVD_mats = SVD_mats.dot(self.U_Mats)
+            SVD_mats = SVD_mats.dot(Sigma_k)
+            SVD_mats = SVD_mats.dot(self.V_Mats.T)
+            # SVD R select questions??
+            #  A_r, sigma_r, B_r_t = SSL_svds(SVD_mats)
+            A_r, sigma_r, B_r_t = SSL_svds(SVD_mats,k=self.R_latent_feature_Num-1)
+            P_k = coo_matrix(A_r.dot(B_r_t))
+            self.P_k_dic[cateID] = P_k
+        return True
+
+
+    def randomly_init_U_C_V(self):
+        """
+            randomly init the latent feature matrices: U, C, V
+        """
+        U_N_userNum = len(self.userPos_li)
+        R = self.R_latent_feature_Num
+        C_K_cateNum = 5
+        # init V as scipy sparse identity matrix
+        self.V_Mats = SM_identity(R)
+        # Randomly init U, C with density = 1?
+        self.U_Mats = SM_random(U_N_userNum,R,density=1)
+        self.C_Mats = SM_random(C_K_cateNum,R,density=1)
         return True
 
     def cal_users_noisePos(self):
@@ -237,7 +316,7 @@ class WITF:
         self.test_data_dic["dataDic"] = { }
         self.training_sparMats_dic["target_cateID"] = target_cateID
         self.training_sparMats_dic["ratio"] = ratios
-        self.training_sparMats_dic["matrix"] = self.raw_sparMats_dic
+        self.training_sparMats_dic["matrix"] = self.raw_sparMats_dic.copy()
         self.test_data_dic["target_cateID"] = target_cateID
         self.test_data_dic["ratio"] = ratios
         target_sparMat = self.raw_sparMats_dic[target_cateID]
@@ -258,8 +337,16 @@ class WITF:
         return True
 
 # ================================================================================================
+#   Global Fucntions
+# ================================================================================================
+
+# ================================================================================================
 #   Main Fucntions
 # ================================================================================================
 witf = WITF()
 witf.main_proceduce()
+cate4 = witf.training_sparMats_dic["matrix"][4]
+cate4_t = cate4.T
+CATE = cate4_t.dot(cate4)
+U, SIGMA, V_t = SSL_svds(CATE,k=5)
 #print("Just create a WITF class object witf!")
