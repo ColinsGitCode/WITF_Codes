@@ -126,18 +126,21 @@ class WITF_Iterations:
         """
         # The number of categories
         num_K = len(self.cate_list)
+        num_N = len(self.userPos_li)
         # sun iteration 1 : update U_i for each user
         for m_iter_time in range(m):
-            #  for user_pos in range(10):
-            for user_pos in range(len(self.userPos_li)):
+            for user_pos in range(1):
+            #  for user_pos in range(len(self.userPos_li)):
                 # update row(user_pos) of U by formula 23
                 U_i_npa = self.Formula_Ui_23(num_K,user_pos)
                 self.U_Mats[user_pos,:] = U_i_npa
                 print("Update U_%d !" %user_pos)
+            print("Finished Update U_i !")
             for cate_index in range(len(self.cate_list)):
                 # update row(cate_index) of C by formula 24
-                # self.Formula_Ck_24(cate_index)
-                pass
+                #  num_N = 10
+                self.Formula_Ck_24(num_N,cate_index)
+                print("Update C_%d !" %cate_index)
             # Update the whole V by formula 25
             # self.Formula_V_25
             pass
@@ -191,6 +194,7 @@ class WITF_Iterations:
             mats = mats.dot(self.V_Mats)
             mats = mats.dot(sigma_k)
             result_mats = result_mats + mats
+            print("In Formula 23 part1 : Done Cate_index:%d !" %k)
         return result_mats.tocsc()
 
 
@@ -220,6 +224,60 @@ class WITF_Iterations:
             col_mat = SM_kron(A.getcol(col_index),B.getcol(col_index))
             product[:,col_index] = col_mat
         return product
+
+    def Formula_Ck_24(self,num_N=10,cate_list=0):
+        """
+            function for Formula 24 to update Ck for category k
+        """
+        npa_Y_3_k = self.Y_n_dic["Y_3"][cate_list]
+        length = npa_Y_3_k.shape[0]
+        mat_Y_3_k = dok_matrix((1,length))
+        mat_Y_3_k[0,:] = npa_Y_3_k
+        V_khaRao_U = self.cal_Khatri_Rao(self.V_Mats,self.U_Mats)
+        res_mat = mat_Y_3_k.dot(V_khaRao_U)
+        res_mat = res_mat.dot(self.Formula_Ck_24_part2(num_N,cate_list))
+        res_npa = res_mat.toarray()[0]
+        return res_npa
+
+    def Formula_Ck_24_part2(self,num_N=10,cate_index=0):
+        """
+            function to calculate the Formula 24 part2
+        """
+        V_Mats = self.V_Mats
+        U_Mats = self.U_Mats
+        res_mat1 = ((U_Mats.T).dot(U_Mats))#.tocsc()  
+        res_mat2 = ((V_Mats.T).dot(V_Mats))#.tocsc()  
+        res_mats = (res_mat1.multiply(res_mat2)).tocsc()
+        I_RR = SM_identity(self.R_latent_feature_Num,format='csc')
+        res_mats = res_mats + I_RR + self.Formula_Ck_24_part1(num_N,cate_index)
+        res_mats = SSL_inv(res_mats)
+        return res_mats
+
+    def Formula_Ck_24_part1(self,num_N=10,cate_index=0):
+        """
+            function to calculate the Formula 24 part1
+        """
+        result_mats = 0
+        for i in range(num_N):
+            cateID = self.cate_list[cate_index]
+            U_i = self.U_Mats.getrow(i).toarray()[0]
+            sigma_i = SM_diags(U_i)
+            P_k = self.P_k_dic[cateID]
+            W_kij = self.ratings_weights_matrixs_dic[cateID]
+            W_ki = W_kij.getrow(i).toarray()[0]
+            omiga_ki = SM_diags(W_ki)
+            size = omiga_ki.shape[0]
+            I_omiga_ki = SM_identity(size)
+            omiga_ki = omiga_ki - I_omiga_ki
+            mats = P_k.dot(self.V_Mats)
+            mats = sigma_i.dot(mats.T)
+            mats = mats.dot(omiga_ki)
+            mats = mats.dot(P_k)
+            mats = mats.dot(self.V_Mats)
+            mats = mats.dot(sigma_i)
+            result_mats = result_mats + mats
+            print("In Formula 24 part1 : Done UserPos:%d !" %i)
+        return result_mats.tocsc()
 
     def get_Y_n(self):
         """
