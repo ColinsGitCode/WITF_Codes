@@ -72,7 +72,7 @@ class TensorIrr:
         for cate in self.selected_five_category:
             items_counts = len(self.selected_five_category[cate][1])
             sm = dok_matrix((users_conuts,items_counts),
-                    dtype=np.float16)
+                    dtype=np.float32)
             self.sparse_matrix_dic[cate] = sm
             print("matrix for category: %d, size is%d and %d!"
                     %(cate,users_conuts,items_counts))
@@ -87,7 +87,7 @@ class TensorIrr:
         for cate in self.selected_five_category:
             items_counts = len(self.selected_five_category[cate][1])
             sm = dok_matrix((users_conuts,items_counts),
-                    dtype=np.float16)
+                    dtype=np.float32)
             self.sparse_matrix_dic[cate] = sm
             print("matrix for category: %d, size is%d and %d!"
                     %(cate,users_conuts,items_counts))

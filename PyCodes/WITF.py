@@ -18,7 +18,7 @@ from SaveData import *
 from functionDrafts import *
 
 class WITF:
-    ''' Class for the WITF model '''
+    ''' Class for the WITF data pre-computing '''
     
     def __init__(self,target_cateID=4,ratios=0.8,noiseCount=2,add_noise_times=5,R_latent_feature_Num=5):
         """
@@ -66,7 +66,6 @@ class WITF:
         self.userPos_ratings_itemPos = self.raw_data["ratingPos"]
         # ****************************************************************************
         # ****************************************************************************
-        #  self.blank_cols = self.raw_data["blankCol"]
         # the train dataset = 
         # { "target_cateID" : target_cateID, "ratio" : Ratios, "matrix" : sparMats_dic}
         self.training_sparMats_dic = { "target_cateID" : 0, "ratio" : 0, \
@@ -96,6 +95,11 @@ class WITF:
         # self.P_k_dic = { cateID : matrix P_k , ... }
         self.P_k_dic = { }
         # ****************************************************************************
+        # ****************************************************************************
+        # Save Weight matrixs: W_kij
+        # self.P_k_dic = { cateID : weights over ratings matrix , ... }
+        self.ratings_weights_matrixs_dic = { }
+        # ****************************************************************************
         # 无用的变量
         self.all_blank_pos_dic = { }
         self.blank_cols = { }
@@ -116,6 +120,10 @@ class WITF:
         print("Finshed randomly_init_U_C_V() Functions")
         self.find_Pk()
         print("Finshed find_Pk() Functions")
+        self.init_ratings_weights_matrix()
+        print("Finished init_ratings_weights_matrix() Functions")
+        self.set_observation_weights()
+        print("Finished set_observation_weights() Functions")
         self.save_PreComputed_data()
         print("Finshed save_PreComputed_data() Functions")
         return True
@@ -126,10 +134,12 @@ class WITF:
         """
         saveData = { }
         saveData["trainSets"] = self.training_sparMats_dic
+        saveData["ratingWeights"] = self.ratings_weights_matrixs_dic
         saveData["testSets"] = self.test_data_dic
         saveData["targetCateID"] = self.target_cateID
         saveData["ratios"] = self.ratios
         saveData["noiseCount"] = self.noiseCount
+        saveData["noiseTimes"] = self.add_noise_times
         saveData["R_sizes"] = self.R_latent_feature_Num
         saveData["userPos"] = self.userPos_li
         saveData["itemPos"] = self.itemPos_dic
@@ -179,8 +189,8 @@ class WITF:
         # init V as scipy sparse identity matrix
         self.V_Mats = SM_identity(R)
         # Randomly init U, C with density = 1?
-        self.U_Mats = SM_random(U_N_userNum,R,density=1)
-        self.C_Mats = SM_random(C_K_cateNum,R,density=1)
+        self.U_Mats = SM_random(U_N_userNum,R,density=1,format='dok')
+        self.C_Mats = SM_random(C_K_cateNum,R,density=1,format='dok')
         return True
 
     def cal_users_noisePos(self):
@@ -336,6 +346,32 @@ class WITF:
         self.training_sparMats_dic["matrix"][target_cateID] = target_sparMat
         return True
 
+    def init_ratings_weights_matrix(self):
+        '''
+        To init the ratings weights matrices 
+        '''
+        users_conuts = len(self.userPos_li)  # 以前的用户选择标准
+        for cate in self.itemPos_dic:
+            items_counts = len(self.itemPos_dic[cate][1])
+            sm = dok_matrix((users_conuts,items_counts),
+                    dtype=np.float32)
+            self.ratings_weights_matrixs_dic[cate] = sm
+            print("ratings_weights_matrix for category: %d, size is%d and %d!"
+                    %(cate,users_conuts,items_counts))
+        return True
+
+    def set_observation_weights(self):
+        for cateID in self.ratings_weights_matrixs_dic:
+            tarining_mats = self.training_sparMats_dic["matrix"][cateID]
+            row_NonZero = tarining_mats.nonzero()[0]
+            col_NonZero = tarining_mats.nonzero()[1]
+            for index in range(len(row_NonZero)):
+                row = row_NonZero[index]
+                col = col_NonZero[index]
+                self.ratings_weights_matrixs_dic[cateID][row,col] = 1
+            print("Finished to set observation weight for cateID:%d!!" %cateID)
+        return True
+
 # ================================================================================================
 #   Global Fucntions
 # ================================================================================================
@@ -345,8 +381,8 @@ class WITF:
 # ================================================================================================
 witf = WITF()
 witf.main_proceduce()
-cate4 = witf.training_sparMats_dic["matrix"][4]
-cate4_t = cate4.T
-CATE = cate4_t.dot(cate4)
-U, SIGMA, V_t = SSL_svds(CATE,k=5)
+#  cate4 = witf.training_sparMats_dic["matrix"][4]
+#  cate4_t = cate4.T
+#  CATE = cate4_t.dot(cate4)
+#  U, SIGMA, V_t = SSL_svds(CATE,k=5)
 #print("Just create a WITF class object witf!")
