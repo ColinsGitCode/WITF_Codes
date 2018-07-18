@@ -38,6 +38,7 @@ class WITF:
         self.noiseCount = noiseCount
         self.add_noise_times = add_noise_times
         self.R_latent_feature_Num = R_latent_feature_Num
+        self.Wkij_dic = {}
         # ****************************************************************************
         # ****************************************************************************
         # 读取由 TensorIrr产生的数据(txt files)
@@ -124,6 +125,8 @@ class WITF:
         print("Finished init_ratings_weights_matrix() Functions")
         self.set_observation_weights()
         print("Finished set_observation_weights() Functions")
+        self.cal_Wki()
+        print("Finished cal_Wki() Functions")
         self.save_PreComputed_data()
         print("Finshed save_PreComputed_data() Functions")
         return True
@@ -135,6 +138,7 @@ class WITF:
         saveData = { }
         saveData["trainSets"] = self.training_sparMats_dic
         saveData["ratingWeights"] = self.ratings_weights_matrixs_dic
+        saveData["omiga_ki"] = self.Wkij_dic
         saveData["testSets"] = self.test_data_dic
         saveData["targetCateID"] = self.target_cateID
         saveData["ratios"] = self.ratios
@@ -371,6 +375,20 @@ class WITF:
                 self.ratings_weights_matrixs_dic[cateID][row,col] = 1
             print("Finished to set observation weight for cateID:%d!!" %cateID)
         return True
+
+    def cal_Wki(self):
+        for cateID in self.ratings_weights_matrixs_dic:
+            W_kij = self.ratings_weights_matrixs_dic[cateID]
+            self.Wkij_dic[cateID] = {}
+            for user_pos in range(len(self.userPos_li)):
+                W_ki = W_kij.getrow(user_pos).toarray()[0]
+                omiga_ki = SM_diags(W_ki)
+                size = omiga_ki.shape[0]
+                I_omiga_ki = SM_identity(size)
+                omiga_ki = omiga_ki - I_omiga_ki
+                self.Wkij_dic[cateID][user_pos] = omiga_ki
+                print("Finished omiga_ki with cateID:%d,userPos:%d !" %(cateID,user_pos))
+        return True        
 
 # ================================================================================================
 #   Global Fucntions

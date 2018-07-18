@@ -83,6 +83,7 @@ class WITF_Iterations:
         self.U_Mats = saveData["U"] 
         self.V_Mats = saveData["V"] 
         self.C_Mats = saveData["C"] 
+        self.Wkij_dic = saveData["omiga_ki"] 
         # ****************************************************************************
         # ****************************************************************************
         # self.cate_list = [4,17,24,29,40]
@@ -120,7 +121,7 @@ class WITF_Iterations:
         pass
         return True
 
-    def sub_iterations(self,m=1,n=1):
+    def sub_iterations(self,user_Count,m=1,n=1):
         """
             Functions for do the sub_iterations
         """
@@ -129,7 +130,8 @@ class WITF_Iterations:
         num_N = len(self.userPos_li)
         # sun iteration 1 : update U_i for each user
         for m_iter_time in range(m):
-            for user_pos in range(1):
+            for user_pos in range(user_Count):
+            #  for user_pos in range(1000):
             #  for user_pos in range(len(self.userPos_li)):
                 # update row(user_pos) of U by formula 23
                 U_i_npa = self.Formula_Ui_23(num_K,user_pos)
@@ -138,8 +140,10 @@ class WITF_Iterations:
             print("Finished Update U_i !")
             for cate_index in range(len(self.cate_list)):
                 # update row(cate_index) of C by formula 24
-                #  num_N = 10
-                self.Formula_Ck_24(num_N,cate_index)
+                num_N = user_Count
+                #  num_N = 1000
+                C_k_npa = self.Formula_Ck_24(num_N,cate_index)
+                self.U_Mats[user_pos,:] = C_k_npa
                 print("Update C_%d !" %cate_index)
             # Update the whole V by formula 25
             # self.Formula_V_25
@@ -149,6 +153,7 @@ class WITF_Iterations:
             # 在此更新Pk,可以使用其他WITF文件里的方法
             # self.Formula_Pk_22
             pass
+        print("Finished Sub-Iteration(Old Version) with UserCount:%d !" %user_Count)
         return True
 
     def Formula_Ui_23(self,num_K=5,user_pos=0):
@@ -169,7 +174,6 @@ class WITF_Iterations:
         return res_npa
 
     def Formula_Ui_23_part1(self,num_K=5,user_pos=0):
-    #  def Formula_Ui_23_part1(self,num_K,user_pos):
         """
             function for calculate Formula 23 part_1
         """
@@ -187,6 +191,35 @@ class WITF_Iterations:
             size = omiga_ki.shape[0]
             I_omiga_ki = SM_identity(size)
             omiga_ki = omiga_ki - I_omiga_ki
+            mats = P_k.dot(self.V_Mats)
+            mats = sigma_k.dot(mats.T)
+            mats = mats.dot(omiga_ki)
+            mats = mats.dot(P_k)
+            mats = mats.dot(self.V_Mats)
+            mats = mats.dot(sigma_k)
+            result_mats = result_mats + mats
+            print("In Formula 23 part1 : Done Cate_index:%d !" %k)
+        return result_mats.tocsc()
+
+    def Formula_Ui_23_part1_PreCom(self,num_K=5,user_pos=0):
+        """
+            function for calculate Formula 23 part_1
+        """
+        result_mats = 0
+        for k in range(num_K):
+            cateID = self.cate_list[k]
+            C_k = self.C_Mats.getrow(k).toarray()[0]
+            sigma_k = SM_diags(C_k)
+            P_k = self.P_k_dic[cateID]
+            #  P_k = self.P_k_dic[self.cate_list[k]]
+            #  W_kij = self.ratings_weights_matrixs_dic[cateID]
+            # user_pos means i
+            #  W_ki = W_kij.getrow(user_pos).toarray()[0]
+            #  omiga_ki = SM_diags(W_ki)
+            #  size = omiga_ki.shape[0]
+            #  I_omiga_ki = SM_identity(size)
+            #  omiga_ki = omiga_ki - I_omiga_ki
+            omiga_ki = self.Wkij_dic[cateID][user_pos]
             mats = P_k.dot(self.V_Mats)
             mats = sigma_k.dot(mats.T)
             mats = mats.dot(omiga_ki)
@@ -279,6 +312,33 @@ class WITF_Iterations:
             print("In Formula 24 part1 : Done UserPos:%d !" %i)
         return result_mats.tocsc()
 
+    def Formula_Ck_24_part1_PreCom(self,num_N=10,cate_index=0):
+        """
+            function to calculate the Formula 24 part1
+        """
+        result_mats = 0
+        for i in range(num_N):
+            cateID = self.cate_list[cate_index]
+            U_i = self.U_Mats.getrow(i).toarray()[0]
+            sigma_i = SM_diags(U_i)
+            P_k = self.P_k_dic[cateID]
+            #  W_kij = self.ratings_weights_matrixs_dic[cateID]
+            #  W_ki = W_kij.getrow(i).toarray()[0]
+            #  omiga_ki = SM_diags(W_ki)
+            #  size = omiga_ki.shape[0]
+            #  I_omiga_ki = SM_identity(size)
+            #  omiga_ki = omiga_ki - I_omiga_ki
+            omiga_ki = self.Wkij_dic[cateID][i]
+            mats = P_k.dot(self.V_Mats)
+            mats = sigma_i.dot(mats.T)
+            mats = mats.dot(omiga_ki)
+            mats = mats.dot(P_k)
+            mats = mats.dot(self.V_Mats)
+            mats = mats.dot(sigma_i)
+            result_mats = result_mats + mats
+            print("In Formula 24 part1 : Done UserPos:%d !" %i)
+        return result_mats.tocsc()
+
     def get_Y_n(self):
         """
             function to get tensor Y mode-n unfolding
@@ -327,6 +387,115 @@ class WITF_Iterations:
         return True
         
 
+    def sub_iterations_UVC(self,user_Count,m=1):
+        """
+            Functions for do the sub_iterations
+        """
+        # The number of categories
+        num_K = len(self.cate_list)
+        num_N = len(self.userPos_li)
+        # Pre-Computing Parts
+        C_khaRao_V = self.cal_Khatri_Rao(self.C_Mats,self.V_Mats)
+        V_khaRao_U = self.cal_Khatri_Rao(self.V_Mats,self.U_Mats)
+        CtCVtV_I = self.cal_AtA_BtB_I(self.C_Mats,self.V_Mats)
+        VtVUtU_I = self.cal_AtA_BtB_I(self.V_Mats,self.U_Mats)
+        # sun iteration 1 : update U_i for each user
+        for m_iter_time in range(m):
+            for user_pos in range(user_Count):
+            #  for user_pos in range(1000):
+            #  for user_pos in range(len(self.userPos_li)):
+                # update row(user_pos) of U by formula 23
+                U_i_npa = self.Formula_Ui_23_PreCom(num_K,user_pos,C_khaRao_V,CtCVtV_I)
+                self.U_Mats[user_pos,:] = U_i_npa
+                print("Update U_%d !" %user_pos)
+            print("Finished Update U_i !")
+            for cate_index in range(len(self.cate_list)):
+                # update row(cate_index) of C by formula 24
+                num_N = user_Count
+                #  num_N = 1000
+                C_k_npa = self.Formula_Ck_24_PreCom(num_N,cate_index,V_khaRao_U,VtVUtU_I)
+                self.C_Mats[cate_index,:] = C_k_npa
+                print("Update C_%d !" %cate_index)
+            # Update the whole V by formula 25
+            # self.Formula_V_25
+        # sub iteration 2: Update Pk for each domian k using formula 22
+        for n_iter_time in range(1):
+            # 在此更新Pk,可以使用其他WITF文件里的方法
+            # self.Formula_Pk_22
+            pass
+        print("Finished Sub-Iteration(New Version) with UserCount:%d !" %user_Count)
+        return True
+
+    def Formula_Ck_24_PreCom(self,num_N,cate_list,V_khaRao_U,VtVUtU_I):
+        """
+            function for Formula 24 to update Ck for category k
+        """
+        npa_Y_3_k = self.Y_n_dic["Y_3"][cate_list]
+        length = npa_Y_3_k.shape[0]
+        mat_Y_3_k = dok_matrix((1,length))
+        mat_Y_3_k[0,:] = npa_Y_3_k
+        #  V_khaRao_U = self.cal_Khatri_Rao(self.V_Mats,self.U_Mats)
+        res_mat = mat_Y_3_k.dot(V_khaRao_U)
+        res_mat = res_mat.dot(self.Formula_Ck_24_part2_PreCom(num_N,cate_list,VtVUtU_I))
+        res_npa = res_mat.toarray()[0]
+        return res_npa
+
+    def Formula_Ck_24_part2_PreCom(self,num_N,cate_index,VtVUtU_I):
+        """
+            function to calculate the Formula 24 part2
+        """
+        #  V_Mats = self.V_Mats
+        #  U_Mats = self.U_Mats
+        #  res_mat1 = ((U_Mats.T).dot(U_Mats))#.tocsc()  
+        #  res_mat2 = ((V_Mats.T).dot(V_Mats))#.tocsc()  
+        #  res_mats = (res_mat1.multiply(res_mat2)).tocsc()
+        #  I_RR = SM_identity(self.R_latent_feature_Num,format='csc')
+        #  res_mats = res_mats + I_RR + self.Formula_Ck_24_part1(num_N,cate_index)
+        res_mats = VtVUtU_I + self.Formula_Ck_24_part1_PreCom(num_N,cate_index)
+        #  res_mats = VtVUtU_I + self.Formula_Ck_24_part1(num_N,cate_index)
+        res_mats = SSL_inv(res_mats)
+        return res_mats
+
+    def Formula_Ui_23_PreCom(self,num_K,user_pos,C_khaRao_V,CtCVtV_I):
+        """
+            function for Formula 23 to update Ui for user i
+        """
+        npa_Y_1_i = self.Y_n_dic["Y_1"][user_pos]
+        length = npa_Y_1_i.shape[0]
+        mat_Y_1_i = dok_matrix((1,length))
+        mat_Y_1_i[0,:] = npa_Y_1_i
+        #C_khaRao_V = self.cal_Khatri_Rao(self.C_Mats,self.V_Mats)
+        res_mat = mat_Y_1_i.dot(C_khaRao_V)
+        res_mat = res_mat.dot(self.Formula_Ui_23_part2_PreCom(num_K,user_pos,CtCVtV_I))
+        res_npa = res_mat.toarray()[0]
+        return res_npa
+
+    def Formula_Ui_23_part2_PreCom(self,num_K,user_pos,CtCVtV_I):
+    #  def Formula_Ui_23_part2(self,num_K,user_pos):
+        """
+            function to calculate the part2 of Formula 23
+        """
+        #  C_Mats = self.C_Mats#.tocsc()
+        #  V_Mats = self.V_Mats#.tocsc()
+        #  res_mat1 = ((C_Mats.T).dot(C_Mats))#.tocsc()  
+        #  res_mat2 = ((V_Mats.T).dot(V_Mats))#.tocsc()  
+        #  res_mats = (res_mat1.multiply(res_mat2)).tocsc()
+        #  I_RR = SM_identity(self.R_latent_feature_Num,format='csc')
+        #  res_mats = res_mats + I_RR + self.Formula_Ui_23_part1(num_K,user_pos)
+        res_mats = CtCVtV_I + self.Formula_Ui_23_part1_PreCom(num_K,user_pos)
+        #  res_mats = CtCVtV_I + self.Formula_Ui_23_part1(num_K,user_pos)
+        res_mats = SSL_inv(res_mats)
+        return res_mats
+
+    def cal_AtA_BtB_I(self,A,B):
+        C_Mats = A
+        V_Mats = B
+        res_mat1 = ((C_Mats.T).dot(C_Mats))#.tocsc()  
+        res_mat2 = ((V_Mats.T).dot(V_Mats))#.tocsc()  
+        res_mats = (res_mat1.multiply(res_mat2)).tocsc()
+        I_RR = SM_identity(self.R_latent_feature_Num,format='csc')
+        res_mats = res_mats + I_RR 
+        return res_mats
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
@@ -334,4 +503,6 @@ txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
 IWITF = WITF_Iterations(txtfile)
 print("Created the instant of WITF_Iterations class which named IWITF!")
 IWITF.main_proceduce()
+#  IWITF.sub_iterations(100)
+IWITF.sub_iterations_UVC(100)
 
