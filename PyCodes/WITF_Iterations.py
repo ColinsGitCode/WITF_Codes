@@ -496,6 +496,43 @@ class WITF_Iterations:
         I_RR = SM_identity(self.R_latent_feature_Num,format='csc')
         res_mats = res_mats + I_RR 
         return res_mats
+
+    def analy_trainSets(self):
+        """
+            Analysis the distributions of the training datasets
+        """
+        user_ratings_counts = { }
+        trainMatrixs = self.training_sparMats_dic["matrix"]
+        for cateID in trainMatrixs.keys():
+            matrix = trainMatrixs[cateID]
+            userIdx = matrix.nonzero()[0]
+            itemIdx = matrix.nonzero()[1]
+            for pos in range(len(userIdx)):
+                #  try:
+                    #  userID = userIdx[pos]
+                #  except KeyError:
+                    #  continue
+                itemID = itemIdx[pos]
+                userID = userIdx[pos]
+                
+                if userID in user_ratings_counts:
+                    try:
+                        user_ratings_counts[userID][cateID] += 1
+                    except KeyError:
+                        user_ratings_counts[userID][cateID] = 1
+                else:
+                    user_ratings_counts[userID] = { }
+                    user_ratings_counts[userID][cateID] = 1
+        for userID in user_ratings_counts.keys():
+            user_count = user_ratings_counts[userID]
+            Sum = 0
+            for cateID in trainMatrixs.keys():
+                try:
+                    Sum = Sum + user_count[cateID] 
+                except KeyError:
+                    user_ratings_counts[userID][cateID] = 0
+            user_ratings_counts[userID]["total"] = Sum    
+        return user_ratings_counts
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
@@ -505,5 +542,5 @@ print("Created the instant of WITF_Iterations class which named IWITF!")
 IWITF.main_proceduce()
 #  IWITF.sub_iterations(100)
 #  IWITF.sub_iterations_UVC(1000)
-IWITF.sub_iterations_UVC(100)
+# IWITF.sub_iterations_UVC(100)
 
