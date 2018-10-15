@@ -3,6 +3,7 @@
 # Usages : WITF model codes
 
 import random
+import math
 import numpy as np
 import scipy
 
@@ -15,6 +16,7 @@ from scipy.sparse import kron as SM_kron
 
 from scipy.sparse.linalg import svds as SSL_svds
 from scipy.sparse.linalg import inv as SSL_inv
+from scipy.sparse.linalg import norm as SSL_ForNorm
 #  from tensorly.tenalg import _khatri_rao as TLY_kha_rao
 
 from SaveData import *
@@ -99,7 +101,7 @@ class WITF_Iterations:
 
 
 
-    def main_proceduce(self):
+    def main_proceduce(self,iter_num=50,userCount=20338):
         """
             main_proceduce for WITF_Iterations class
             1. add_noises(): add noise for each user
@@ -111,7 +113,42 @@ class WITF_Iterations:
         """
         self.add_noises()
         print("Finished add_noises()!")
-        return True
+        FBNorm_li = [ ]
+        ForBe_Norm = self.cal_ObjFunc() 
+        #  ForBe_Norm = 0
+        FBNorm_li.append(ForBe_Norm)
+        for iter_times in range(iter_num):
+            self.sub_iterations_UVC(userCount)
+            ForBe_Norm = self.cal_ObjFunc() 
+            #  ForBe_Norm = 0
+            FBNorm_li.append(ForBe_Norm)
+            filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/No" + str(iter_times) + "_iteration.txt"
+            self.save_Data(filename,ForBe_Norm,iter_times)
+            FBNorm_li_filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/FBNorm_li.txt"
+            save_to_txt(FBNorm_li,FBNorm_li_filename)
+        print("Finished main_proceduce() !")
+        return FBNorm_li
+
+    def main_proceduce_old(self,iter_num=5,userCount=20338):
+        """
+            main_proceduce for WITF_Iterations class
+            1. add_noises(): add noise for each user
+            2. assign_weights() assgin weights by a specific weights configurations
+                2.1 How to decide the weights, now set as all 1
+            3. Iterations (How to decided whether is convergences??????)
+               3.1 Sub-Iterations m (1~5): m=1
+               3.2 Sub-Iterations n (1~5): n=1
+        """
+        self.add_noises()
+        print("Finished add_noises()!")
+        FBNorm_li = [ ]
+        ForBe_Norm = self.cal_ObjFunc() 
+        FBNorm_li.append(ForBe_Norm)
+        for iter_times in range(iter_num):
+            self.sub_iterations_UVC(userCount)
+            ForBe_Norm = self.cal_ObjFunc() 
+            FBNorm_li.append(ForBe_Norm)
+        return FBNorm_li
 
     def assign_weights(self):
         """
@@ -227,7 +264,7 @@ class WITF_Iterations:
             mats = mats.dot(self.V_Mats)
             mats = mats.dot(sigma_k)
             result_mats = result_mats + mats
-            print("In Formula 23 part1 : Done Cate_index:%d !" %k)
+            print("**Upate U** : In Formula 23 part1 : Done Cate_index:%d !" %k)
         return result_mats.tocsc()
 
 
@@ -336,7 +373,7 @@ class WITF_Iterations:
             mats = mats.dot(self.V_Mats)
             mats = mats.dot(sigma_i)
             result_mats = result_mats + mats
-            print("In Formula 24 part1 : Done UserPos:%d !" %i)
+            print("**Upate C** : In Formula 24 part1 : Done UserPos:%d !" %i)
         return result_mats.tocsc()
 
     def get_Y_n(self):
@@ -387,21 +424,22 @@ class WITF_Iterations:
         return True
         
 
-    def sub_iterations_UVC(self,user_Count,m=1):
+    def sub_iterations_UVC(self,user_Count=20338,m=3,n=3):
         """
             Functions for do the sub_iterations
         """
         # The number of categories
         num_K = len(self.cate_list)
-        num_N = len(self.userPos_li)
+        num_N = user_Count
+        #  num_N = len(self.userPos_li)
         # Pre-Computing Parts
-        C_khaRao_V = self.cal_Khatri_Rao(self.C_Mats,self.V_Mats)
-        V_khaRao_U = self.cal_Khatri_Rao(self.V_Mats,self.U_Mats)
-        CtCVtV_I = self.cal_AtA_BtB_I(self.C_Mats,self.V_Mats)
-        VtVUtU_I = self.cal_AtA_BtB_I(self.V_Mats,self.U_Mats)
         # sun iteration 1 : update U_i for each user
         for m_iter_time in range(m):
-            for user_pos in range(user_Count):
+            C_khaRao_V = self.cal_Khatri_Rao(self.C_Mats,self.V_Mats)
+            V_khaRao_U = self.cal_Khatri_Rao(self.V_Mats,self.U_Mats)
+            CtCVtV_I = self.cal_AtA_BtB_I(self.C_Mats,self.V_Mats)
+            VtVUtU_I = self.cal_AtA_BtB_I(self.V_Mats,self.U_Mats)
+            for user_pos in range(num_N):
             #  for user_pos in range(1000):
             #  for user_pos in range(len(self.userPos_li)):
                 # update row(user_pos) of U by formula 23
@@ -417,12 +455,11 @@ class WITF_Iterations:
                 self.C_Mats[cate_index,:] = C_k_npa
                 print("Update C_%d !" %cate_index)
             # Update the whole V by formula 25
-            # self.Formula_V_25
+            self.Update_V(num_K,num_N)
         # sub iteration 2: Update Pk for each domian k using formula 22
-        for n_iter_time in range(1):
+        for n_iter_time in range(n):
             # 在此更新Pk,可以使用其他WITF文件里的方法
-            # self.Formula_Pk_22
-            pass
+            self.Update_Pk()
         print("Finished Sub-Iteration(New Version) with UserCount:%d !" %user_Count)
         return True
 
@@ -533,6 +570,186 @@ class WITF_Iterations:
                     user_ratings_counts[userID][cateID] = 0
             user_ratings_counts[userID]["total"] = Sum    
         return user_ratings_counts
+
+    def Mats_to_vecA(self,mats):
+        """
+            Calculate the vec(A) of a matrix A, and return the vec(A)
+            vec(A) is a matrix
+        """
+        col_num = mats.shape[1]
+        vecA = mats.getcol(0)
+        for col in range(1,col_num):
+            col_mat = mats.getcol(col)
+            vecA = scipy.sparse.vstack([vecA,col_mat])
+        return vecA
+
+    def vecA_to_Mats(self,vecA):
+        """
+            Calculate the matrix A's vecA
+            return the vecA
+        """
+        row_len = vecA.shape[0]
+        row_mats = int(math.sqrt(row_len))
+        col_mats = row_mats
+        vecA_list = vecA.toarray()
+        new_li = [ ]
+        new_li.append([ ])
+        new_li_inx = 0
+        inx_count = 0
+        for ele in vecA_list:
+            inx_count += 1
+            ele = ele[0]
+            new_li[new_li_inx].append(ele)
+            if inx_count == row_mats:
+                inx_count = 0
+                new_li_inx += 1
+                new_li.append([ ])
+            else:
+                pass
+        col_mat_list = [ ]
+        row = [ ]
+        col = [ ]
+        for i in range(row_mats):
+            row.append(i)
+            col.append(0)
+        #  print(new_li)
+        #  print(row)
+        #  print(col)
+        for idx in range(len(new_li)-1):
+            #  row = [0,1,2,3,4]
+            #  col = [0,0,0,0,0]
+            ele_arr = new_li[idx]
+            col_mat = coo_matrix((ele_arr, (row,col)))
+            col_mat_list.append(col_mat)
+        col_mats_lens = len(col_mat_list)
+        Mats = col_mat_list[0]
+        for idx in range(1,col_mats_lens):
+            Mats = scipy.sparse.hstack([Mats,col_mat_list[idx]])
+        return Mats
+
+    def Update_V(self,K_num=5,N_num=20338):
+        """
+            Update the V as a whole
+        """
+        C = self.C_Mats
+        U = self.U_Mats
+        C_rhaRao_U = self.cal_Khatri_Rao(C, U)
+        Y2 = self.Y_n_dic["Y_2"]
+        Y2_mats = np.asmatrix(Y2)
+        Y2_mats = coo_matrix(Y2_mats)
+        Y2CU = Y2_mats.dot(C_rhaRao_U)
+        vecY2CU = self.Mats_to_vecA(Y2CU)
+        # inverse Parts ---------------------------------
+        CtC = (C.T).dot(C)
+        UtU = (U.T).dot(U)
+        CtCUtU = CtC.multiply(UtU)
+        size = CtCUtU.shape[0]
+        I = SM_identity(size)
+        CtCUtU_I = CtCUtU + I
+        CtCUtU_kron_I = SM_kron(CtCUtU_I,I)
+        print("Finished CtCUtU_kron_I !")
+       	# print(CtCUtU_kron_I)
+        inv_part = CtCUtU_kron_I + self.Update_V_subpart1(K_num,N_num)
+        print("Finished SubParts !")
+        inv_value = SSL_inv(inv_part.tocsc()) 		
+        vecV = inv_value.dot(vecY2CU)
+        print("Finished Inverse Operations")
+        V = self.vecA_to_Mats(vecV)
+        #print(V)
+        self.V_Mats = V
+        return True
+
+    def Update_V_subpart1(self,K=5,N=20338):
+        """
+            Calate the SUMMARY K,N Parts
+        """
+        U = self.U_Mats
+        for k in range(K):
+            cateID = self.cate_list[k]
+            P_k = self.P_k_dic[cateID]
+            P_k_t = P_k.T
+            C_k = self.C_Mats.getrow(k).toarray()[0]
+            sigma_k = SM_diags(C_k)
+            W_kij = self.ratings_weights_matrixs_dic[cateID]
+            res = 0
+            for i in range(N):
+                U_i = U[i]
+                U_i_t = U_i.T
+               	omiga_ki = self.Wkij_dic[cateID][i]
+                Sk_Uit = sigma_k.dot(U_i_t)
+                Sk_Uit_Ui = Sk_Uit.dot(U_i)
+                Sk_Uit_Ui_Sk = Sk_Uit_Ui.dot(sigma_k)
+                # Pkt_Oki_Pk parts
+                Pkt_Oki = P_k_t.dot(omiga_ki)
+                Pkt_Oki_Pk = Pkt_Oki.dot(P_k)
+                res = res + SM_kron(Sk_Uit_Ui_Sk,Pkt_Oki_Pk)
+                print("**Upadte_V** : Finished CateID: %d, UserID: %d !" %(cateID,i))
+        return res
+
+    def Update_Pk(self):
+        """
+            Calculate the constrant Pk for each category by SVD
+        """
+        cate_list = self.cate_list
+        for cate_index in range(len(cate_list)):
+        #  for cateID in self.training_sparMats_dic["matrix"]:
+            cateID = cate_list[cate_index]
+            X_k = self.training_sparMats_dic["matrix"][cateID]
+            C_k_row = self.C_Mats.getrow(cate_index).toarray()[0]
+            Sigma_k = SM_diags(C_k_row)
+            SVD_mats = X_k.T
+            SVD_mats = SVD_mats.dot(self.U_Mats)
+            SVD_mats = SVD_mats.dot(Sigma_k)
+            SVD_mats = SVD_mats.dot(self.V_Mats.T)
+            # SVD R select questions??
+            #  A_r, sigma_r, B_r_t = SSL_svds(SVD_mats)
+            A_r, sigma_r, B_r_t = SSL_svds(SVD_mats,k=self.R_latent_feature_Num-1)
+            P_k = coo_matrix(A_r.dot(B_r_t))
+            self.P_k_dic[cateID] = P_k
+            print("**Update Pk** : Finished Update_Pk in cateID:%d !" %cateID)
+        print("Finished Update_Pk!")
+        return True
+
+    def cal_ObjFunc(self):
+        """
+            calculate the Forbenius Norm values for the objective functions
+            return the Forbenius Norm value
+        """
+        U = self.U_Mats
+        V = self.V_Mats
+        fro_norm_value = 0
+        for k in range(len(self.cate_list)):
+            # calculate in each category
+            cateID = self.cate_list[k]
+            X_k = self.training_sparMats_dic["matrix"][cateID]
+            C_k_row = self.C_Mats.getrow(k).toarray()[0]
+            Sigma_k = SM_diags(C_k_row)
+            P_k = self.P_k_dic[cateID]
+            USk = U.dot(Sigma_k)
+            PkVt = (P_k.dot(V)).T
+            MAT = X_k - USk.dot(PkVt)
+            fro_norm_value += 0.5 * (SSL_ForNorm(MAT))**2
+        print("Finished calculate the FroBenius Norm for the Obejective Functions!")
+        return fro_norm_value
+
+    def save_Data(self,filename,ObjVal,iter_times):
+        """
+            save files for each time iterations
+        """
+        saved_data = { }
+        saved_data["objValue"] = ObjVal
+        saved_data["IterTimes"] = iter_times
+        saved_data["testSets"] = self.test_data_dic
+        saved_data["trainSets"] = self.training_sparMats_dic
+        saved_data["U"] = self.U_Mats
+        saved_data["V"] = self.V_Mats
+        saved_data["C"] = self.C_Mats
+        saved_data["Pk"] = self.P_k_dic
+        save_to_txt(saved_data,filename)
+        return True
+
+
+
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
@@ -540,6 +757,7 @@ txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
 IWITF = WITF_Iterations(txtfile)
 print("Created the instant of WITF_Iterations class which named IWITF!")
 IWITF.main_proceduce()
+print("Finished All !!!!")
 #  IWITF.sub_iterations(100)
 #  IWITF.sub_iterations_UVC(1000)
 # IWITF.sub_iterations_UVC(100)
