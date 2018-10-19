@@ -21,18 +21,21 @@ class TensorIrr:
         # DS : self.two_more_ratings_users_dic =
         #            { userID : { cateID : [(itemID1,rating1), (itemID2,rating2), ...], ....}, ... } 
         self.two_more_ratings_users_dic = \
-        load_from_txt("/home/Colin/txtData/TwoMoreRatingsUsers.txt")
+        load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/5ratings.txt")
+        # load_from_txt("/home/Colin/txtData/TwoMoreRatingsUsers.txt")
         # ********************************************************************************************
         # ********************************************************************************************
         # 任意分类有两个以上分类的用户ID的排序列表
         # DS : self.userIDs_pos = [userID1, userID2, ...] (sorted)
-        self.userIDs_pos = load_from_txt("/home/Colin/txtData/TwoRatingsUsersPosMap.txt")
+        self.userIDs_pos = load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/userIDPOS.txt")
+        #self.userIDs_pos = load_from_txt("/home/Colin/txtData/TwoRatingsUsersPosMap.txt")
         # ********************************************************************************************
         # ********************************************************************************************
         # 选择的五个分类的所有的itemID, 保存在nparray中
         # DS : self.selected_five_category = 
         #            { cateID : ("cate_name" , ndarray[itemID,itemID,...](sorted)), ... }
-        self.selected_five_category = load_from_txt("/home/Colin/txtData/FiveSelectdCategories.txt")
+        self.selected_five_category = load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/newSelected5Cates.txt")
+        #  self.selected_five_category = load_from_txt("/home/Colin/txtData/FiveSelectdCategories.txt")
         # ********************************************************************************************
         # 每一个分类的稀疏矩阵，行坐标为用户在用户ID排序列表中的Index
         # 列坐标为item在Item列表(np.array)中的Index
@@ -358,12 +361,12 @@ tensor.update_sparse_matrix_from_txtData_RatingPostions()
 print("Finished update sparse matrices! ")
 tensor.combine_matrix_userPos_ItemPos()
 print("Finished combine matrix, userPos, itemPos! ")
-# ---------> filename1 = "../txtData/UsersHas2MoreRatingsInAllCategoires.txt"
+### ---------> filename1 = "../txtData/UsersHas2MoreRatingsInAllCategoires.txt"
 # ---------> save_to_txt(tensor.user_has_2more_ratings_in_all_categores,filename1)
 # ---------> filename2 = "../txtData/Users_NOT_Has2MoreRatingsInAllCategoires.txt"
 # ---------> save_to_txt(tensor.user_not_has_2more_ratings_in_all_categores,filename2)
 #  filename3 = "/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt"
-filename3 = "/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt"
+filename3 = "/home/Colin/GitHubFiles/new_WITF_data/new_raw_data_for_WITF_py.txt"
 save_to_txt(tensor.WITF_raw_data,filename3)
 print("Saved all data")
 

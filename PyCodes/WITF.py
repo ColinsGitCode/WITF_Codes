@@ -44,7 +44,8 @@ class WITF:
         # 读取由 TensorIrr产生的数据(txt files)
         # self.raw_data.keys() : userPos, itemPos, matrix, ratingsPos
         self.raw_data = \
-        load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
+        load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/new_raw_data_for_WITF_py.txt")
+        # load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
         # ****************************************************************************
         # ****************************************************************************
         # 任意分类有两个以上分类的用户ID的排序列表
@@ -104,6 +105,8 @@ class WITF:
         # 无用的变量
         self.all_blank_pos_dic = { }
         self.blank_cols = { }
+        # for save Y_n
+        self.Y_n_dic = { }
 
     def main_proceduce(self):
         """
@@ -153,7 +156,10 @@ class WITF:
         saveData["U"] = self.U_Mats
         saveData["V"] = self.V_Mats
         saveData["C"] = self.C_Mats
-        filename = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
+        self.get_Y_n()
+        saveData["Y_n"] = self.Y_n_dic
+        filename = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
+        #filename = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
         save_to_txt(saveData,filename)
         return True
 
@@ -389,6 +395,32 @@ class WITF:
                 self.Wkij_dic[cateID][user_pos] = omiga_ki
                 print("Finished omiga_ki with cateID:%d,userPos:%d !" %(cateID,user_pos))
         return True        
+
+    def get_Y_n(self):
+        """
+            function to get tensor Y mode-n unfolding
+        """
+        User_num = len(self.userPos_li)
+        Cate_num = 5
+        #  Cate_num = len(self.cate_list)
+        V_num = self.R_latent_feature_Num
+        R_num = self.R_latent_feature_Num
+        Y = np.random.rand(User_num,V_num,Cate_num)
+        for u in range(User_num):
+            U_u = self.U_Mats.getrow(u)#.toarray[0]
+            for v in range(V_num): 
+                V_v = self.V_Mats.getrow(v)#.toarray[0]
+                for c in range(Cate_num):
+                #  for c in range(Cate_num):
+                    C_c = self.C_Mats.getrow(v)#.toarray[0]
+                    entry = U_u.multiply(V_v)
+                    entry = entry.multiply(C_c).sum()
+                    Y[u][v][c] = entry
+                    print("get_Y_n: Done userPos:%d,VPos:%d,CPos:%d!" %(u,v,c))
+        self.Y_n_dic["Y_1"] = np.reshape(np.moveaxis(Y,0,0),(Y.shape[0], -1),order='F')
+        self.Y_n_dic["Y_2"] = np.reshape(np.moveaxis(Y,1,0),(Y.shape[1], -1),order='F')
+        self.Y_n_dic["Y_3"] = np.reshape(np.moveaxis(Y,2,0),(Y.shape[2], -1),order='F')
+        return True
 
 # ================================================================================================
 #   Global Fucntions

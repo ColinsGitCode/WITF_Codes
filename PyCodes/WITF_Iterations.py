@@ -96,12 +96,13 @@ class WITF_Iterations:
         # ****************************************************************************
         # Svae tensor Y mode-n npa
         #  self.Y_n_dic = { }
-        FILENAME = "/home/Colin/txtData/forWITFs/Y_n_dic.txt"
-        self.Y_n_dic = load_from_txt(FILENAME)
+        #  FILENAME = "/home/Colin/txtData/forWITFs/Y_n_dic.txt"
+        #  self.Y_n_dic = load_from_txt(FILENAME)
+        self.Y_n_dic = saveData["Y_n"]
 
 
 
-    def main_proceduce(self,iter_num=50,userCount=20338):
+    def main_proceduce(self,iter_num=50,userCount=6682):
         """
             main_proceduce for WITF_Iterations class
             1. add_noises(): add noise for each user
@@ -124,12 +125,12 @@ class WITF_Iterations:
             FBNorm_li.append(ForBe_Norm)
             filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/No" + str(iter_times) + "_iteration.txt"
             self.save_Data(filename,ForBe_Norm,iter_times)
-            FBNorm_li_filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/FBNorm_li.txt"
+            FBNorm_li_filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/FBNorm_li_newDatasets.txt"
             save_to_txt(FBNorm_li,FBNorm_li_filename)
         print("Finished main_proceduce() !")
         return FBNorm_li
 
-    def main_proceduce_old(self,iter_num=5,userCount=20338):
+    def main_proceduce_old(self,iter_num=5,userCount=6682):
         """
             main_proceduce for WITF_Iterations class
             1. add_noises(): add noise for each user
@@ -424,7 +425,7 @@ class WITF_Iterations:
         return True
         
 
-    def sub_iterations_UVC(self,user_Count=20338,m=3,n=3):
+    def sub_iterations_UVC(self,user_Count=6682,m=3,n=3):
         """
             Functions for do the sub_iterations
         """
@@ -627,7 +628,7 @@ class WITF_Iterations:
             Mats = scipy.sparse.hstack([Mats,col_mat_list[idx]])
         return Mats
 
-    def Update_V(self,K_num=5,N_num=20338):
+    def Update_V(self,K_num=5,N_num=6682):
         """
             Update the V as a whole
         """
@@ -659,7 +660,7 @@ class WITF_Iterations:
         self.V_Mats = V
         return True
 
-    def Update_V_subpart1(self,K=5,N=20338):
+    def Update_V_subpart1(self,K=5,N=6682):
         """
             Calate the SUMMARY K,N Parts
         """
@@ -753,12 +754,14 @@ class WITF_Iterations:
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
-txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
+txtfile = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
+#txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
 IWITF = WITF_Iterations(txtfile)
 print("Created the instant of WITF_Iterations class which named IWITF!")
-IWITF.main_proceduce()
+IWITF.main_proceduce(50,6682)
 print("Finished All !!!!")
 #  IWITF.sub_iterations(100)
 #  IWITF.sub_iterations_UVC(1000)
 # IWITF.sub_iterations_UVC(100)
+
 
