@@ -56,6 +56,8 @@ class Test_Accuracy:
             realPre_li.append((real_rating,pre_rating))
             self.realPre_li.append((real_rating,pre_rating))
         print("In Iteration %d --> Calculate Prediction Ratings Done!" %self.it_no)
+        print("MAE Test : The real&Prediction ratings are as below: ")
+        print(self.realPre_li)
         SUM = 0
         for ele in realPre_li:
            ABS = abs(ele[0] - ele[1])
@@ -66,7 +68,7 @@ class Test_Accuracy:
         print("In Iteration %d --> Calculate MAE Done!" %self.it_no)
         return MAE 
 
-    def test_for_all_users(self):
+    def test_for_all_users_RMSE(self):
         """
             Test the accuracy by using the RMSE matircs
         """
@@ -79,6 +81,8 @@ class Test_Accuracy:
             realPre_li.append((real_rating,pre_rating))
             self.realPre_li.append((real_rating,pre_rating))
         print("In Iteration %d --> Calculate Prediction Ratings Done!" %self.it_no)
+        print("RMSE Test : The real&Prediction ratings are as below: ")
+        print(self.realPre_li)
         SUM = 0
         for ele in realPre_li:
            sqrt_eleAbs = (ele[0]-ele[1])**2
@@ -111,10 +115,21 @@ class Test_Accuracy:
 #  Data = Test_Accuracy(filename)
 #  RMSE = Data.test_for_all_users()
 RMSE_list = [ ]
-for i in range(50):
-    filename = "/home/Colin/txtData/IterSaves_Pk50/No" + str(i) + "_iteration.txt"
+MAE_list = [ ]
+DATA = [ ]
+for i in range(5):
+    filename = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/No" + str(i) + "_iteration.txt"
+    #  filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/No" + str(i) + "_iteration.txt"
+    #  filename = "/home/Colin/txtData/IterSaves_Pk50/No" + str(i) + "_iteration.txt"
     Data = Test_Accuracy(filename,i)
+    RMSE = Data.test_for_all_users_RMSE()
     RMSE = Data.test_for_all_users_MAE()
     RMSE_list.append(RMSE)
+    MAE_list.append(RMSE)
+    DATA.append(Data)
 
+print("All RMSE are as below: ")
 print(RMSE_list)
+print("All MAE are as below: ")
+print(MAE_list)
+print("Finished All!!!")

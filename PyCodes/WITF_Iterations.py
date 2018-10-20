@@ -2,6 +2,7 @@
 # Filename: WITF.py
 # Usages : WITF model codes
 
+import datetime
 import random
 import math
 import numpy as np
@@ -112,20 +113,23 @@ class WITF_Iterations:
                3.1 Sub-Iterations m (1~5): m=1
                3.2 Sub-Iterations n (1~5): n=1
         """
+        # 1. 添加噪声
         self.add_noises()
         print("Finished add_noises()!")
         FBNorm_li = [ ]
+        # 计算初始数据的 FBNorm
         ForBe_Norm = self.cal_ObjFunc() 
         #  ForBe_Norm = 0
         FBNorm_li.append(ForBe_Norm)
         for iter_times in range(iter_num):
+            # 3. 执行每次迭代，Do each time Iteration
             self.sub_iterations_UVC(userCount)
+            # 4. 计算每次的迭代之后的 FBNorm
             ForBe_Norm = self.cal_ObjFunc() 
-            #  ForBe_Norm = 0
             FBNorm_li.append(ForBe_Norm)
-            filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/No" + str(iter_times) + "_iteration.txt"
+            filename = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/No" + str(iter_times) + "_iteration.txt"
             self.save_Data(filename,ForBe_Norm,iter_times)
-            FBNorm_li_filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/FBNorm_li_newDatasets.txt"
+            FBNorm_li_filename = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/FBNorm_li_newDatasets.txt"
             save_to_txt(FBNorm_li,FBNorm_li_filename)
         print("Finished main_proceduce() !")
         return FBNorm_li
@@ -159,7 +163,7 @@ class WITF_Iterations:
         pass
         return True
 
-    def sub_iterations(self,user_Count,m=1,n=1):
+    def sub_iterations_drafts(self,user_Count,m=1,n=1):
         """
             Functions for do the sub_iterations
         """
@@ -425,7 +429,7 @@ class WITF_Iterations:
         return True
         
 
-    def sub_iterations_UVC(self,user_Count=6682,m=3,n=3):
+    def sub_iterations_UVC(self,user_Count=6682,m=1,n=1):
         """
             Functions for do the sub_iterations
         """
@@ -758,8 +762,14 @@ txtfile = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
 #txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
 IWITF = WITF_Iterations(txtfile)
 print("Created the instant of WITF_Iterations class which named IWITF!")
-IWITF.main_proceduce(50,6682)
-print("Finished All !!!!")
+starttime = datetime.datetime.now()
+IWITF.main_proceduce(20,6682)
+endtime = datetime.datetime.now()
+executetime = (endtime - starttime).seconds
+print("Finished All !!!!, and the Execute Time is %d" %executetime)
+
+
+# --------- end lines -------------------
 #  IWITF.sub_iterations(100)
 #  IWITF.sub_iterations_UVC(1000)
 # IWITF.sub_iterations_UVC(100)

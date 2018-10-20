@@ -114,22 +114,35 @@ class WITF:
            Parameter : target_cateID --> choose which category as the target category 
                        train_data_ratio --> set the ratio(%) for the training data and test data
         """
+        # 1. 按照指定的比例ratios把所有数据分割成trainingSet和testSet
         self.split_data_byRatios()
         print("Finished SPLIT training and test dataset with target_cateID: %d and Ratios: %d Precentages!" \
                  %(self.target_cateID, 100*self.ratios))
+        # 2. 计算训练集的stats, 在迭代更新时直接使用，减少迭代更新过程的计算时间
         self.cal_stats_for_trainSets()
         print("Finished calculate the stats for trianing datasets!")
+        # 3. 为原始数据（训练集）计算添加noises(Virtual Data)的位置，为了减少迭代的计算时间
+        # ----> STEP:4 --- Prepare for STEP: 5 (In WITF_Iterations Class)
         self.cal_users_noisePos()
+        # 4. 初始化，U，V，C 矩阵，所有值都在（0，1）之间
+        # ----> STEP 1(V <- I) & 2
         self.randomly_init_U_C_V()
         print("Finshed randomly_init_U_C_V() Functions")
+        # 5. 计算 {Pk}
+        # ----> STEP 3
         self.find_Pk()
         print("Finshed find_Pk() Functions")
+        # 6. 初始化 weights over ratings （w_kij)
         self.init_ratings_weights_matrix()
         print("Finished init_ratings_weights_matrix() Functions")
+        # 7. 设置 weights over ratings （w_kij), 有rating为1，否则为0
         self.set_observation_weights()
         print("Finished set_observation_weights() Functions")
+        # 8. 事先计算Wki,减少迭代的计算时间
         self.cal_Wki()
         print("Finished cal_Wki() Functions")
+        # 9, 存储Precomputed的所有数据
+        # ---> 包含计算 Y_n_dic，事先计算的数据，减少迭代的计算时间
         self.save_PreComputed_data()
         print("Finshed save_PreComputed_data() Functions")
         return True
@@ -192,15 +205,25 @@ class WITF:
     def randomly_init_U_C_V(self):
         """
             randomly init the latent feature matrices: U, C, V
+            所有的随机初始值都在（0，1）之间，存在疑问（如何更好的设置随机初始值）？？
         """
         U_N_userNum = len(self.userPos_li)
         R = self.R_latent_feature_Num
         C_K_cateNum = 5
         # init V as scipy sparse identity matrix
         self.V_Mats = SM_identity(R)
+        print("Finished init V_mats! (Identity Matrix)")                
         # Randomly init U, C with density = 1?
         self.U_Mats = SM_random(U_N_userNum,R,density=1,format='dok')
+        for i in range(U_N_userNum):
+            for j in range(R):
+                self.U_Mats[i,j] = np.random.randint(1,6)
+        print("Finished init U_mats!")                
         self.C_Mats = SM_random(C_K_cateNum,R,density=1,format='dok')
+        for i in range(C_K_cateNum):
+            for j in range(R):
+                self.C_Mats[i,j] = np.random.randint(1,6)
+        print("Finished init C_mats!")                
         return True
 
     def cal_users_noisePos(self):
@@ -237,6 +260,7 @@ class WITF:
     def add_noises(self):
         """
             add noises(virtual data) for each user in each category
+            主要在迭代类中使用，这里只是草稿，备用
         """
         for cateID in self.training_sparMats_dic["matrix"]:
             mu_k = self.trainSets_stats_dic[cateID]["mu_k"]
@@ -260,6 +284,7 @@ class WITF:
     def add_noises_verion_1(self):
         """
             add noises(virtual data) for each user in each category
+            主要在迭代类中使用，这里只是草稿，备用
         """
         for cateID in self.training_sparMats_dic["matrix"]:
             mu_k = self.trainSets_stats_dic[cateID]["mu_k"]
@@ -279,6 +304,10 @@ class WITF:
         return True
 
     def cal_stats_for_trainSets(self):
+        """
+            计算训练集的stats，包括：mean,mu_k,sigma等重要数据，以便在进行迭代更新
+            的时候进行直接使用，减少迭代的计算时间
+        """
         for cateID in self.training_sparMats_dic["matrix"]:
             #  self.all_blank_pos_dic[cateID] = [ ]
             self.trainSets_stats_dic[cateID] = { }
@@ -342,6 +371,7 @@ class WITF:
         target_sparMat = self.raw_sparMats_dic[target_cateID]
         row_NonZero = target_sparMat.nonzero()[0]
         col_NonZero = target_sparMat.nonzero()[1]
+        # 进行分割抽取，抽取位置的选择由 “Drafts_samples"函数决定
         sampled_index = Drafts_samples(len(row_NonZero),1-ratios)
         for index in sampled_index:
             # get each randomly select test data's row and col
@@ -359,6 +389,8 @@ class WITF:
     def init_ratings_weights_matrix(self):
         '''
         To init the ratings weights matrices 
+        根据每个Category 的用户数和item数,初始化每个category的weight matirx (w_kij) 
+        此weights matrix 主要是用于表示每个rating的权重，属于 weights over ratings not for domains 
         '''
         users_conuts = len(self.userPos_li)  # 以前的用户选择标准
         for cate in self.itemPos_dic:
@@ -371,6 +403,11 @@ class WITF:
         return True
 
     def set_observation_weights(self):
+        """
+            为每个weight matrix(w_kij) 的每个元素（weights for item) 设置值
+            观察到的rating 的 weight 设置为 1
+            没有观察到的，即缺失的值，设置为 0
+        """
         for cateID in self.ratings_weights_matrixs_dic:
             tarining_mats = self.training_sparMats_dic["matrix"][cateID]
             row_NonZero = tarining_mats.nonzero()[0]
@@ -383,6 +420,9 @@ class WITF:
         return True
 
     def cal_Wki(self):
+        """
+            事先计算Wki,减少迭代的计算时间
+        """
         for cateID in self.ratings_weights_matrixs_dic:
             W_kij = self.ratings_weights_matrixs_dic[cateID]
             self.Wkij_dic[cateID] = {}
@@ -399,6 +439,7 @@ class WITF:
     def get_Y_n(self):
         """
             function to get tensor Y mode-n unfolding
+            事先计算，减少迭代的计算时间
         """
         User_num = len(self.userPos_li)
         Cate_num = 5
@@ -412,7 +453,7 @@ class WITF:
                 V_v = self.V_Mats.getrow(v)#.toarray[0]
                 for c in range(Cate_num):
                 #  for c in range(Cate_num):
-                    C_c = self.C_Mats.getrow(v)#.toarray[0]
+                    C_c = self.C_Mats.getrow(c)#.toarray[0]
                     entry = U_u.multiply(V_v)
                     entry = entry.multiply(C_c).sum()
                     Y[u][v][c] = entry
@@ -436,3 +477,4 @@ witf.main_proceduce()
 #  CATE = cate4_t.dot(cate4)
 #  U, SIGMA, V_t = SSL_svds(CATE,k=5)
 #print("Just create a WITF class object witf!")
+
