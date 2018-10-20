@@ -2,6 +2,7 @@
 # Filename: WITF.py
 # Usages : WITF model codes
 
+from tqdm import tqdm
 import random
 import numpy as np
 import scipy
@@ -20,7 +21,7 @@ from functionDrafts import *
 class WITF:
     ''' Class for the WITF data pre-computing '''
     
-    def __init__(self,target_cateID=4,ratios=0.8,noiseCount=2,add_noise_times=5,R_latent_feature_Num=5):
+    def __init__(self,target_cateID=4,ratios=0.8,noiseCount=2,add_noise_times=5,R_latent_feature_Num=15):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -171,7 +172,8 @@ class WITF:
         saveData["C"] = self.C_Mats
         self.get_Y_n()
         saveData["Y_n"] = self.Y_n_dic
-        filename = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
+        filename = "/home/Colin/GitHubFiles/new_WITF_data/R15_init1to5_preCom_Data/new_WITF_precomputed_Data.txt"
+        #  filename = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
         #filename = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
         save_to_txt(saveData,filename)
         return True
@@ -199,6 +201,8 @@ class WITF:
             A_r, sigma_r, B_r_t = SSL_svds(SVD_mats,k=self.R_latent_feature_Num-1)
             P_k = coo_matrix(A_r.dot(B_r_t))
             self.P_k_dic[cateID] = P_k
+            print("Found P_k for CateID: %d!" %cateID)
+        print("Finished find all {P_k}!")
         return True
 
 
@@ -230,10 +234,17 @@ class WITF:
         """
             The function to calculate the noises postions for each user in each category
         """
-        for user_pos in self.userPos_ratings_itemPos:
+        print("Start --> cal_users_noisePos")
+        pbar_lv1 = tqdm(self.userPos_ratings_itemPos.keys())
+        #  for user_pos in self.userPos_ratings_itemPos:
+        for user_pos in pbar_lv1:
+            pbar_lv1.set_description("Each User:")
             self.user_noisePos[user_pos] = { }
             ratingPos_dic = self.userPos_ratings_itemPos[user_pos]
-            for cateID in ratingPos_dic:
+            pbar_lv2 = tqdm(ratingPos_dic.keys())
+            #  for cateID in ratingPos_dic:
+            for cateID in pbar_lv2:
+                pbar_lv2.set_description("Each Cate:")
                 self.user_noisePos[user_pos][cateID] = [ ]
                 rating_cateID = ratingPos_dic[cateID]
                 if rating_cateID[0] is False:
@@ -252,9 +263,11 @@ class WITF:
                     for time in range(self.add_noise_times):
                         selectedPos = random.sample(blankPos,self.noiseCount)
                         self.user_noisePos[user_pos][cateID].append(selectedPos)
-                print("Finished calculate %d group users noises postions for userPos:%d in cateID:%d!" %(self.add_noise_times,user_pos,cateID)) 
-            print("Finished userPos:%d <--------------------> " %user_pos)
-        print("Finshed cal_users_noisePos() functions!!!")
+                #  print("Finished calculate %d group users noises postions for userPos:%d in cateID:%d!" %(self.add_noise_times,user_pos,cateID)) 
+            #  print("Finished userPos:%d <--------------------> " %user_pos)
+            pbar_lv2.close()
+        pbar_lv1.close()
+        print("Finsihed --> cal_users_noisePos")
         return True
 
     def add_noises(self):
@@ -308,6 +321,7 @@ class WITF:
             计算训练集的stats，包括：mean,mu_k,sigma等重要数据，以便在进行迭代更新
             的时候进行直接使用，减少迭代的计算时间
         """
+        print("Start --> cal_stats_for_trainSets")
         for cateID in self.training_sparMats_dic["matrix"]:
             #  self.all_blank_pos_dic[cateID] = [ ]
             self.trainSets_stats_dic[cateID] = { }
@@ -332,6 +346,7 @@ class WITF:
             #  self.cateID_itemPos_dic[cateID] = itemPos_dic
             self.trainSets_stats_dic[cateID]["allItemPos"] = itemPos_dic
             #  self.all_blank_pos_dic[cateID] = itemPos_li
+        print("Finished --> cal_stats_for_trainSets")
         return True
 
     def bak_cal_stats_for_trainSets(self):
@@ -357,6 +372,42 @@ class WITF:
         return True
 
     def split_data_byRatios(self):
+        """
+            split the training data and test data by ratio and target_cateID
+        """
+        print("Start --> split_data_byRatios !")
+        target_cateID = self.target_cateID
+        ratios = self.ratios
+        self.test_data_dic["dataDic"] = { }
+        self.training_sparMats_dic["target_cateID"] = target_cateID
+        self.training_sparMats_dic["ratio"] = ratios
+        self.training_sparMats_dic["matrix"] = self.raw_sparMats_dic.copy()
+        self.test_data_dic["target_cateID"] = target_cateID
+        self.test_data_dic["ratio"] = ratios
+        target_sparMat = self.raw_sparMats_dic[target_cateID]
+        row_NonZero = target_sparMat.nonzero()[0]
+        col_NonZero = target_sparMat.nonzero()[1]
+        # 进行分割抽取，抽取位置的选择由 “Drafts_samples"函数决定
+        sampled_index = Drafts_samples(len(row_NonZero),1-ratios)
+        pbar = tqdm(sampled_index)
+        for index in pbar:
+        #  for index in sampled_index:
+            pbar.set_description("selecting test data(ratings) :")
+            # get each randomly select test data's row and col
+            row = row_NonZero[index]
+            col = col_NonZero[index]
+            rating = target_sparMat[row,col]
+            # the randomly select data is deleted(changed to 0 ??)
+            target_sparMat[row,col] = 0
+            self.test_data_dic["dataDic"][(row,col)] = rating
+            # update a element into test data
+            # self.test_data_dic["datalist"].append((row,col,rating))
+        pbar.close()
+        self.training_sparMats_dic["matrix"][target_cateID] = target_sparMat
+        print("Finished --> split_data_byRatios !")
+        return True
+    
+    def bak_split_data_byRatios(self):
         """
             split the training data and test data by ratio and target_cateID
         """
@@ -423,17 +474,27 @@ class WITF:
         """
             事先计算Wki,减少迭代的计算时间
         """
-        for cateID in self.ratings_weights_matrixs_dic:
+        print("Start --> cal_Wki")
+        pbar_lv1 = tqdm(self.ratings_weights_matrixs_dic.keys())
+        for cateID in pbar_lv1:
+        #  for cateID in self.ratings_weights_matrixs_dic:
+            pbar_lv1.set_description("Each Cate:")
             W_kij = self.ratings_weights_matrixs_dic[cateID]
             self.Wkij_dic[cateID] = {}
-            for user_pos in range(len(self.userPos_li)):
+            pbar_lv2 = tqdm(range(len(self.userPos_li)))
+            #  for user_pos in range(len(self.userPos_li)):
+            for user_pos in pbar_lv2:
+                pbar_lv2.set_description("Each User:")
                 W_ki = W_kij.getrow(user_pos).toarray()[0]
                 omiga_ki = SM_diags(W_ki)
                 size = omiga_ki.shape[0]
                 I_omiga_ki = SM_identity(size)
                 omiga_ki = omiga_ki - I_omiga_ki
                 self.Wkij_dic[cateID][user_pos] = omiga_ki
-                print("Finished omiga_ki with cateID:%d,userPos:%d !" %(cateID,user_pos))
+                #  print("Finished omiga_ki with cateID:%d,userPos:%d !" %(cateID,user_pos))
+            pbar_lv2.close()
+        pbar_lv1.close()
+        print("Finished --> cal_Wki")
         return True        
 
     def get_Y_n(self):
@@ -441,13 +502,17 @@ class WITF:
             function to get tensor Y mode-n unfolding
             事先计算，减少迭代的计算时间
         """
+        print("Start --> get_Y_n")
         User_num = len(self.userPos_li)
         Cate_num = 5
         #  Cate_num = len(self.cate_list)
         V_num = self.R_latent_feature_Num
         R_num = self.R_latent_feature_Num
         Y = np.random.rand(User_num,V_num,Cate_num)
-        for u in range(User_num):
+        pbar = tqdm(range(User_num))
+        for u in pbar:
+        #  for u in range(User_num):
+            pbar.set_description("Each User:")
             U_u = self.U_Mats.getrow(u)#.toarray[0]
             for v in range(V_num): 
                 V_v = self.V_Mats.getrow(v)#.toarray[0]
@@ -457,10 +522,12 @@ class WITF:
                     entry = U_u.multiply(V_v)
                     entry = entry.multiply(C_c).sum()
                     Y[u][v][c] = entry
-                    print("get_Y_n: Done userPos:%d,VPos:%d,CPos:%d!" %(u,v,c))
+                    #  print("get_Y_n: Done userPos:%d,VPos:%d,CPos:%d!" %(u,v,c))
         self.Y_n_dic["Y_1"] = np.reshape(np.moveaxis(Y,0,0),(Y.shape[0], -1),order='F')
         self.Y_n_dic["Y_2"] = np.reshape(np.moveaxis(Y,1,0),(Y.shape[1], -1),order='F')
         self.Y_n_dic["Y_3"] = np.reshape(np.moveaxis(Y,2,0),(Y.shape[2], -1),order='F')
+        pbar.close()
+        print("Finished --> get_Y_n")
         return True
 
 # ================================================================================================

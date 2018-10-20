@@ -117,10 +117,11 @@ class Test_Accuracy:
 RMSE_list = [ ]
 MAE_list = [ ]
 DATA = [ ]
-for i in range(5):
+filename1 = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/FBNorm_li_newDatasets.txt"
+ObjFunctions = load_from_txt(filename1)
+
+for i in range(20):
     filename = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/No" + str(i) + "_iteration.txt"
-    #  filename = "/home/Colin/txtData/IterSaves_Pk50_mn3/No" + str(i) + "_iteration.txt"
-    #  filename = "/home/Colin/txtData/IterSaves_Pk50/No" + str(i) + "_iteration.txt"
     Data = Test_Accuracy(filename,i)
     RMSE = Data.test_for_all_users_RMSE()
     RMSE = Data.test_for_all_users_MAE()
@@ -132,4 +133,6 @@ print("All RMSE are as below: ")
 print(RMSE_list)
 print("All MAE are as below: ")
 print(MAE_list)
+print("All ObjValues are as below: ")
+print(ObjFunctions)
 print("Finished All!!!")

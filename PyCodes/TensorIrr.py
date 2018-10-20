@@ -2,6 +2,7 @@
 # Filename: TensorIrr.py
 # Usages : Construct the Irregular Tensor
 
+from tqdm import tqdm
 import numpy as np
 import scipy
 from scipy.sparse import dok_matrix
@@ -96,6 +97,27 @@ class TensorIrr:
                     %(cate,users_conuts,items_counts))
         return True
 
+    def init_sparse_matrix_from_txtData_with_tqdm(self):
+        '''
+        To init the empty sparse matrices 
+        '''
+        print("Start init sparse matrix!")
+        users_conuts = len(self.userIDs_pos)  # 以前的用户选择标准
+        #users_conuts = len(self.userIDs_pos_10ratings)
+        pbar = tqdm(self.selected_five_category)
+        #  for cate in self.selected_five_category:
+        for cate in pbar:
+            pbar.set_description("init sparse matrix for each cate: ")
+            items_counts = len(self.selected_five_category[cate][1])
+            sm = dok_matrix((users_conuts,items_counts),
+                    dtype=np.float32)
+            self.sparse_matrix_dic[cate] = sm
+            #  print("matrix for category: %d, size is%d and %d!"
+                    #  %(cate,users_conuts,items_counts))
+        pbar.close()
+        print("Finished init sparse matrix!")
+        return True
+
     def update_sparse_matrix(self):
         '''
         update sparse matrix
@@ -170,6 +192,7 @@ class TensorIrr:
         update sparse matrix
         '''
         # 遍历所有的用户, user_pos 为该用户在矩阵的行位置
+        #  pbar_lv1 = tqdm(range(len(self.userIDs_pos))
         for user_pos in range(len(self.userIDs_pos)):
         #for user_pos in range(len(self.userIDs_pos_10ratings)):
             #  self.userPos_blank_itemPos[user_pos] = {}
@@ -211,6 +234,66 @@ class TensorIrr:
                     ratings_pos = self.userPos_ratings_itemPos[user_pos][cateID]
                 except KeyError:
                     self.userPos_ratings_itemPos[user_pos][cateID] = (False,[ ])
+        return True
+
+    def update_sparse_matrix_from_txtData_RatingPostions_with_tqdm(self):
+        '''
+        update sparse matrix
+        '''
+        print("Start --> update_sparse_matrix_from_txtData_RatingPostions_with_tqdm")
+        # 遍历所有的用户, user_pos 为该用户在矩阵的行位置
+        pbar_lv1 = tqdm(range(len(self.userIDs_pos)))
+
+        for user_pos in pbar_lv1:
+        #  for user_pos in range(len(self.userIDs_pos)):
+            pbar_lv1.set_description("Each User Pos:")
+            self.userPos_ratings_itemPos[user_pos] = {}
+            userID = self.userIDs_pos[user_pos]
+            user_ratings_dic = self.two_more_ratings_users_dic[userID]
+            # 遍历此用户在所有类目下的评分，数据结构为字典{cateID:[(itemID,ratings),.....]}
+            pbar_lv2 = tqdm(user_ratings_dic.keys())
+            #  for user_cateID in user_ratings_dic:
+            for user_cateID in pbar_lv2:
+                pbar_lv2.set_description("Each Cate:")
+                #  self.userPos_blank_itemPos[user_pos][user_cateID] = [ ]
+                self.userPos_ratings_itemPos[user_pos][user_cateID] = (True,[ ])
+                user_cateID_ratings_list = user_ratings_dic[user_cateID]
+                #  itemsINcateID_npa = \
+                #  self.selected_five_category[user_cateID][1]
+                #  itemPos_itemIDs_dic = Drafts_get_itemPos_itemIDs_dic(itemsINcateID_npa)
+                # 遍历此用户在此类目下所有的评分，评分为(itemID,rating)
+                pbar_lv3 = tqdm(user_cateID_ratings_list)
+                #  for rating in user_cateID_ratings_list:
+                for rating in pbar_lv3:
+                    pbar_lv3.set_description("Each rating for item:")
+                    itemID = rating[0]
+                    rating_value = rating[1]
+                    items_cateID_npa = \
+                    self.selected_five_category[user_cateID][1]
+                    # item_pos : 该item在矩阵中列位置
+                    item_pos = np.where(items_cateID_npa == itemID) 
+                    item_pos = item_pos[0][0]
+                    self.sparse_matrix_dic[user_cateID][user_pos,item_pos] = \
+                    rating_value
+                    self.userPos_ratings_itemPos[user_pos][user_cateID][1].append(item_pos)
+                    #  try:
+                        #  del itemPos_itemIDs_dic[item_pos]
+                    #  except KeyError:
+                        #  pass
+                    #  print("Update the rating which category:%d, UserID:%d, \
+                    #  UserPos:%d,ItemID:%d, ItemPos:%d !" \
+                    #  % (user_cateID, userID, user_pos, itemID, item_pos))
+                #  itemPos_itemIDs_li = sorted(itemPos_itemIDs_dic.keys())
+                #  self.userPos_blank_itemPos[user_pos][user_cateID] = itemPos_itemIDs_li
+                pbar_lv3.close()
+            pbar_lv2.close()
+            for cateID in self.selected_five_category:
+                try:
+                    ratings_pos = self.userPos_ratings_itemPos[user_pos][cateID]
+                except KeyError:
+                    self.userPos_ratings_itemPos[user_pos][cateID] = (False,[ ])
+        pbar_lv1.close()
+        print("Finished --> update_sparse_matrix_from_txtData_RatingPostions_with_tqdm")
         return True
 
     def update_sparse_matrix_with_check(self):
@@ -355,9 +438,9 @@ class TensorIrr:
 tensor = TensorIrr()
 print("Created a instant of TensorIrr class which named tensor! ")
 # ---------> tensor.get_two_ratings_users_in_all_categories()
-tensor.init_sparse_matrix_from_txtData()
+tensor.init_sparse_matrix_from_txtData_with_tqdm()
 print("Finished init sparse matrices! ")
-tensor.update_sparse_matrix_from_txtData_RatingPostions()
+tensor.update_sparse_matrix_from_txtData_RatingPostions_with_tqdm()
 print("Finished update sparse matrices! ")
 tensor.combine_matrix_userPos_ItemPos()
 print("Finished combine matrix, userPos, itemPos! ")
