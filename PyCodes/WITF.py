@@ -21,7 +21,7 @@ from functionDrafts import *
 class WITF:
     ''' Class for the WITF data pre-computing '''
     
-    def __init__(self,target_cateID=4,ratios=0.8,noiseCount=2,add_noise_times=5,R_latent_feature_Num=15):
+    def __init__(self,SaveFile,R_latent_feature_Num=5,init_range=(1,6),target_cateID=4,ratios=0.8,noiseCount=2,add_noise_times=5):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -39,6 +39,11 @@ class WITF:
         self.noiseCount = noiseCount
         self.add_noise_times = add_noise_times
         self.R_latent_feature_Num = R_latent_feature_Num
+        print("R is %d!" %self.R_latent_feature_Num)
+        self.SaveFile = SaveFile
+        print("SaveFile is %s!" %self.SaveFile)
+        self.init_range = init_range
+        print("Randomly Init Range is %d ~ %d!" %(self.init_range[0],self.init_range[1]))
         self.Wkij_dic = {}
         # ****************************************************************************
         # ****************************************************************************
@@ -172,10 +177,10 @@ class WITF:
         saveData["C"] = self.C_Mats
         self.get_Y_n()
         saveData["Y_n"] = self.Y_n_dic
-        filename = "/home/Colin/GitHubFiles/new_WITF_data/R15_init1to5_preCom_Data/new_WITF_precomputed_Data.txt"
+        #  filename = "/home/Colin/GitHubFiles/new_WITF_data/R5_init1to100_preCom_Data/new_WITF_precomputed_Data.txt"
         #  filename = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
         #filename = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
-        save_to_txt(saveData,filename)
+        save_to_txt(saveData,self.SaveFile)
         return True
 
     def find_Pk(self):
@@ -211,6 +216,8 @@ class WITF:
             randomly init the latent feature matrices: U, C, V
             所有的随机初始值都在（0，1）之间，存在疑问（如何更好的设置随机初始值）？？
         """
+        randint_left = self.init_range[0]
+        randint_right = self.init_range[1]
         U_N_userNum = len(self.userPos_li)
         R = self.R_latent_feature_Num
         C_K_cateNum = 5
@@ -221,12 +228,12 @@ class WITF:
         self.U_Mats = SM_random(U_N_userNum,R,density=1,format='dok')
         for i in range(U_N_userNum):
             for j in range(R):
-                self.U_Mats[i,j] = np.random.randint(1,6)
+                self.U_Mats[i,j] = np.random.randint(randint_left,randint_right)
         print("Finished init U_mats!")                
         self.C_Mats = SM_random(C_K_cateNum,R,density=1,format='dok')
         for i in range(C_K_cateNum):
             for j in range(R):
-                self.C_Mats[i,j] = np.random.randint(1,6)
+                self.C_Mats[i,j] = np.random.randint(randint_left,randint_right)
         print("Finished init C_mats!")                
         return True
 
@@ -537,7 +544,8 @@ class WITF:
 # ================================================================================================
 #   Main Fucntions
 # ================================================================================================
-witf = WITF()
+filename = "/home/Colin/GitHubFiles/new_WITF_data/R5_init10to20_preCom_Data/new_WITF_precomputed_Data.txt"
+witf = WITF(SaveFile=filename,R_latent_feature_Num=5,init_range=(10,20))
 witf.main_proceduce()
 #  cate4 = witf.training_sparMats_dic["matrix"][4]
 #  cate4_t = cate4.T

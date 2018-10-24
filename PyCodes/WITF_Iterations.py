@@ -28,8 +28,18 @@ from functionDrafts import *
 
 class WITF_Iterations:
     ''' Class for doing the WITF Iterations! '''
-    def __init__(self,filename):
+    def __init__(self,filename,SaveDir,m=3,n=3):
         saveData = load_from_txt(filename)
+        print("------------------------------------------------------------")
+        print("Loaded PreComputed Data File is %s! " %filename)
+        self.SaveDir = SaveDir
+        print("------------------------------------------------------------")
+        print("Save Data Dir is %s! " %self.SaveDir)
+        self.m_iter_time = m
+        self.n_iter_time = n
+        print("------------------------------------------------------------")
+        print("The Sub-Iterations Times m is %d, n is %d!" %(self.m_iter_time,self.n_iter_time))
+        print("------------------------------------------------------------")
         # ****************************************************************************
         # 基本配置常量
         self.target_cateID = saveData["targetCateID"]  
@@ -117,12 +127,14 @@ class WITF_Iterations:
         # 1. 添加噪声
         self.add_noises()
         print("Finished add_noises()!")
+        print("------------------------------------------------------------")
         FBNorm_li = [ ]
         # 计算初始数据的 FBNorm
         ForBe_Norm = self.cal_ObjFunc() 
         #  ForBe_Norm = 0
         FBNorm_li.append(ForBe_Norm)
         print("Start --> Doing Iterations!!!")
+        print("------------------------------------------------------------")
         pbar_iter_times = tqdm(range(iter_num))
         for iter_times in pbar_iter_times:
         #  for iter_times in range(iter_num):
@@ -134,16 +146,19 @@ class WITF_Iterations:
             ForBe_Norm = self.cal_ObjFunc() 
             FBNorm_li.append(ForBe_Norm)
             #  filename = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/No" + str(iter_times) + "_iteration.txt"
-            filename = "/home/Colin/txtData/testTqdm/No" + str(iter_times) + "_iteration.txt"
+            #  filename = "/home/Colin/txtData/testTqdm50_newR30/No" + str(iter_times) + "_iteration.txt"
+            filename = self.SaveDir + "/No" + str(iter_times) + "_iteration.txt"
             self.save_Data(filename,ForBe_Norm,iter_times)
             #  print("Finished --> Iteration Times : %d" %iter_times)
             #  print(" -----------------------------------------------------------")
             #  print(" -----------------------------------------------------------")
         pbar_iter_times.close()
-        FBNorm_li_filename = "/home/Colin/txtData/testTqdm/FBNorm_li_newDatasets.txt"
+        #  FBNorm_li_filename = "/home/Colin/txtData/testTqdm50_newR30/FBNorm_li_newDatasets.txt"
+        FBNorm_li_filename = self.SaveDir + "/FBNorm_li_newDatasets.txt"
         #  FBNorm_li_filename = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/FBNorm_li_newDatasets.txt"
         save_to_txt(FBNorm_li,FBNorm_li_filename)
         print("Finished main_proceduce() !")
+        print("------------------------------------------------------------")
         return FBNorm_li
 
     def main_proceduce_old(self,iter_num=5,userCount=6682):
@@ -454,6 +469,8 @@ class WITF_Iterations:
             Functions for do the sub_iterations
         """
         # The number of categories
+        m = self.m_iter_time
+        n = self.n_iter_time
         num_K = len(self.cate_list)
         num_N = user_Count
         #  num_N = len(self.userPos_li)
@@ -804,12 +821,14 @@ class WITF_Iterations:
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
-txtfile = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
+txtfile = "/home/Colin/GitHubFiles/new_WITF_data/R5_init10to20_preCom_Data/new_WITF_precomputed_Data.txt"
+savedir = "/home/Colin/txtData/R5_init10to20_mn3_Iter20"
 #txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
-IWITF = WITF_Iterations(txtfile)
+IWITF = WITF_Iterations(txtfile,savedir,3,3)
 print("Created the instant of WITF_Iterations class which named IWITF!")
 starttime = datetime.datetime.now()
 #  IWITF.main_proceduce(20,50)
+#  IWITF.main_proceduce(2,100)
 IWITF.main_proceduce(20,6682)
 endtime = datetime.datetime.now()
 executetime = (endtime - starttime).seconds
