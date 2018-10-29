@@ -22,20 +22,20 @@ class TensorIrr:
         # DS : self.two_more_ratings_users_dic =
         #            { userID : { cateID : [(itemID1,rating1), (itemID2,rating2), ...], ....}, ... } 
         self.two_more_ratings_users_dic = \
-        load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/5ratings.txt")
+        load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/RawBeforeTensor_py/10_10/ratings.txt")
         # load_from_txt("/home/Colin/txtData/TwoMoreRatingsUsers.txt")
         # ********************************************************************************************
         # ********************************************************************************************
         # 任意分类有两个以上分类的用户ID的排序列表
         # DS : self.userIDs_pos = [userID1, userID2, ...] (sorted)
-        self.userIDs_pos = load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/userIDPOS.txt")
+        self.userIDs_pos = load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/RawBeforeTensor_py/10_10/userIDPOS.txt")
         #self.userIDs_pos = load_from_txt("/home/Colin/txtData/TwoRatingsUsersPosMap.txt")
         # ********************************************************************************************
         # ********************************************************************************************
         # 选择的五个分类的所有的itemID, 保存在nparray中
         # DS : self.selected_five_category = 
         #            { cateID : ("cate_name" , ndarray[itemID,itemID,...](sorted)), ... }
-        self.selected_five_category = load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/newSelected5Cates.txt")
+        self.selected_five_category = load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/RawBeforeTensor_py/10_10/newSelected5Cates.txt")
         #  self.selected_five_category = load_from_txt("/home/Colin/txtData/FiveSelectdCategories.txt")
         # ********************************************************************************************
         # 每一个分类的稀疏矩阵，行坐标为用户在用户ID排序列表中的Index
@@ -296,7 +296,7 @@ class TensorIrr:
         print("Finished --> update_sparse_matrix_from_txtData_RatingPostions_with_tqdm")
         return True
 
-    def update_sparse_matrix_with_check(self):
+    def update_sparse_matrix_with_check(self,userRatingThreshold=5):
         '''
         update sparse matrix
         '''
@@ -313,7 +313,7 @@ class TensorIrr:
             user_ratings_dic = self.user_has_2more_ratings_in_all_categores[userID]
             if len(user_ratings_dic) is 0:
                 user_not_rating_counts += 1
-            if len(user_ratings_dic) < 5:
+            if len(user_ratings_dic) < userRatingThreshold:
                 user_not_rating_all_cate_counts += 1
                 userID_not_rating_all_cate.append(userID)
             # 遍历此用户在所有类目下的评分，数据结构为字典{cateID:[(itemID,ratings),.....]}
@@ -449,7 +449,8 @@ print("Finished combine matrix, userPos, itemPos! ")
 # ---------> filename2 = "../txtData/Users_NOT_Has2MoreRatingsInAllCategoires.txt"
 # ---------> save_to_txt(tensor.user_not_has_2more_ratings_in_all_categores,filename2)
 #  filename3 = "/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt"
-filename3 = "/home/Colin/GitHubFiles/new_WITF_data/new_raw_data_for_WITF_py.txt"
+filename3 = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt"
+#  filename3 = "/home/Colin/GitHubFiles/new_WITF_data/new_raw_data_for_WITF_py.txt"
 save_to_txt(tensor.WITF_raw_data,filename3)
 print("Saved all data")
 

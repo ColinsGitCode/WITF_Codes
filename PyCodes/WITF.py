@@ -21,7 +21,7 @@ from functionDrafts import *
 class WITF:
     ''' Class for the WITF data pre-computing '''
     
-    def __init__(self,SaveFile,R_latent_feature_Num=5,init_range=(1,6),target_cateID=4,ratios=0.8,noiseCount=2,add_noise_times=5):
+    def __init__(self,SaveFile,R_latent_feature_Num=5,init_range=(1,6),target_cateID=4,ratios=0.8,noiseCount=0,add_noise_times=5):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -50,7 +50,7 @@ class WITF:
         # 读取由 TensorIrr产生的数据(txt files)
         # self.raw_data.keys() : userPos, itemPos, matrix, ratingsPos
         self.raw_data = \
-        load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/new_raw_data_for_WITF_py.txt")
+        load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt")
         # load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
         # ****************************************************************************
         # ****************************************************************************
@@ -544,7 +544,7 @@ class WITF:
 # ================================================================================================
 #   Main Fucntions
 # ================================================================================================
-filename = "/home/Colin/GitHubFiles/new_WITF_data/R5_init10to20_preCom_Data/new_WITF_precomputed_Data.txt"
+filename = "/home/Colin/GitHubFiles/new_WITF_data/R5_init10to20_U10I10_preCom_Data/new_WITF_precomputed_Data.txt"
 witf = WITF(SaveFile=filename,R_latent_feature_Num=5,init_range=(10,20))
 witf.main_proceduce()
 #  cate4 = witf.training_sparMats_dic["matrix"][4]
