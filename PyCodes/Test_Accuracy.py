@@ -195,9 +195,9 @@ MAE_Tuning_list = [ ]
 DATA = [ ]
 #filename1 = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/FBNorm_li_newDatasets.txt"
 #  ObjFunctions = load_from_txt(filename1)
-fileNUM = 5
+fileNUM = 20
 for i in range(fileNUM):
-    filename = "/home/Colin/txtData/R5_init10to20_mn3_Iter20/No" + str(i) + "_iteration.txt"
+    filename = "/home/Colin/txtData/R5_init1to_mn3_Iter20/No" + str(i) + "_iteration.txt"
     Data = Test_Accuracy(filename,i)
     RMSE = Data.test_for_all_users_RMSE()
     RMSE_Tuning = Data.test_for_all_users_RMSE_Tuning()
@@ -219,10 +219,10 @@ print("All MAE_Tuning are as below: ")
 print(MAE_Tuning_list)
 print("All ObjValues are as below: ")
 #  print(ObjFunctions)
-for i in range(fileNUM):
-    print("-------------------------------------------------")
-    print(" Line %d :" %i)
-    print(RMSE_Tuning_list[i],MAE_Tuning_list[i])
-    print("-------------------------------------------------")
+#  for i in range(fileNUM):
+    #  print("-------------------------------------------------")
+    #  print(" Line %d :" %i)
+    #  print(RMSE_Tuning_list[i],MAE_Tuning_list[i])
+    #  print("-------------------------------------------------")
 
 print("Finished All!!!")

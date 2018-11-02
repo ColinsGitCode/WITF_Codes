@@ -544,8 +544,8 @@ class WITF:
 # ================================================================================================
 #   Main Fucntions
 # ================================================================================================
-filename = "/home/Colin/GitHubFiles/new_WITF_data/R5_init10to20_U10I10_preCom_Data/new_WITF_precomputed_Data.txt"
-witf = WITF(SaveFile=filename,R_latent_feature_Num=5,init_range=(10,20))
+filename = "/home/Colin/GitHubFiles/new_WITF_data/R5_init1to5_U10I10_preCom_Data/new_WITF_precomputed_Data.txt"
+witf = WITF(SaveFile=filename,R_latent_feature_Num=5,init_range=(1,6))
 witf.main_proceduce()
 #  cate4 = witf.training_sparMats_dic["matrix"][4]
 #  cate4_t = cate4.T

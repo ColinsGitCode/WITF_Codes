@@ -821,15 +821,15 @@ class WITF_Iterations:
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
-txtfile = "/home/Colin/GitHubFiles/new_WITF_data/R5_init10to20_U10I10_preCom_Data/new_WITF_precomputed_Data.txt"
-savedir = "/home/Colin/txtData/R5_init10to20_U10I10_mn3_Iter20"
+txtfile = "/home/Colin/GitHubFiles/new_WITF_data/R5_init1to5_U10I10_preCom_Data/new_WITF_precomputed_Data.txt"
+savedir = "/home/Colin/txtData/R5_init1to5_U10I10_mn3_Iter20"
 #txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
 IWITF = WITF_Iterations(txtfile,savedir,3,3)
 print("Created the instant of WITF_Iterations class which named IWITF!")
 starttime = datetime.datetime.now()
 #  IWITF.main_proceduce(20,50)
 #  IWITF.main_proceduce(2,100)
-IWITF.main_proceduce(50,2403)
+IWITF.main_proceduce(20,2403)
 endtime = datetime.datetime.now()
 executetime = (endtime - starttime).seconds
 print("Finished All !!!!, and the Execute Time is %d" %executetime)
