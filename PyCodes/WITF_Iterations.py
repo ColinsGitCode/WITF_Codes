@@ -809,6 +809,8 @@ class WITF_Iterations:
         saved_data["IterTimes"] = iter_times
         saved_data["testSets"] = self.test_data_dic
         saved_data["trainSets"] = self.training_sparMats_dic
+        saved_data["userPos"] = self.userPos_li
+        saved_data["itemPos"] = self.itemPos_dic
         saved_data["U"] = self.U_Mats
         saved_data["V"] = self.V_Mats
         saved_data["C"] = self.C_Mats
@@ -821,15 +823,15 @@ class WITF_Iterations:
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
-txtfile = "/home/Colin/GitHubFiles/new_WITF_data/R5_init1to5_U10I10_preCom_Data/new_WITF_precomputed_Data.txt"
-savedir = "/home/Colin/txtData/R5_init1to5_U10I10_mn3_Iter20"
+txtfile = "/home/Colin/GitHubFiles/U5I5_PreCom_Data/R5_init50to60_U5I5_preCom_Data/new_WITF_precomputed_Data.txt"
+savedir = "/home/Colin/txtData/U5I5_Iterated_Data/R5_init50to60_U5I5_mn3_Iter20"
 #txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
 IWITF = WITF_Iterations(txtfile,savedir,3,3)
 print("Created the instant of WITF_Iterations class which named IWITF!")
 starttime = datetime.datetime.now()
 #  IWITF.main_proceduce(20,50)
 #  IWITF.main_proceduce(2,100)
-IWITF.main_proceduce(20,2403)
+IWITF.main_proceduce(20,6682)
 endtime = datetime.datetime.now()
 executetime = (endtime - starttime).seconds
 print("Finished All !!!!, and the Execute Time is %d" %executetime)

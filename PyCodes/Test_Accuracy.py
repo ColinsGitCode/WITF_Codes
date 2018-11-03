@@ -1,9 +1,7 @@
-# Python3
-# Filename: WITF.py
+# Python3 # Filename: WITF.py
 # Usages : WITF model codes
 
-import random
-import math
+import random import math
 import numpy as np
 import scipy
 
@@ -33,8 +31,7 @@ class Test_Accuracy:
         self.U = self.data["U"]
         self.C = self.data["C"]
         self.V = self.data["V"]
-        self.Pk = self.data["Pk"]
-        cate_index = 4
+        self.Pk = self.data["Pk"] cate_index = 4
         C_k_row = self.C.getrow(cate_index).toarray()[0]
         Sigma_k = SM_diags(C_k_row)
         self.Uk = Sigma_k.dot((self.U).T)
