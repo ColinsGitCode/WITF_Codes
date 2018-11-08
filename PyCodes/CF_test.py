@@ -27,6 +27,7 @@ from SaveData import *
 from functionDrafts import *
 
 from surprise import BaselineOnly
+from surprise import SlopeOne
 from surprise import SVD
 from surprise import SVDpp
 from surprise import NMF
@@ -105,7 +106,7 @@ class BenchMarks():
         print("BenchMarks : Start run()!") 
         self.ParseTrainSets()
         self.ParseTestSets()
-        #  self.UserCF = UserBasedCF(self.whole_train_matirx,self.new_testSets_dic)
+        self.UserCF = UserBasedCF(self.whole_train_matirx,self.new_testSets_dic)
         #  self.UserCF.run()
         print("BenchMarks : End run()!") 
         return True
@@ -325,7 +326,7 @@ class Suprise_Benchmarks:
 
     def SVDpp(self,cv=5):
         """
-            Benckmarks SVD algorithms : from surprise import SVD
+            Benckmarks SVD++ algorithms : from surprise import SVD
         """
         data = self.data
         algo = SVDpp()
@@ -335,7 +336,7 @@ class Suprise_Benchmarks:
 
     def NMF(self,cv=5):
         """
-            Benckmarks SVD algorithms : from surprise import SVD
+            Benckmarks NMF algorithms : from surprise import SVD
         """
         data = self.data
         algo = NMF()
@@ -345,7 +346,7 @@ class Suprise_Benchmarks:
 
     def KNNBasic(self,cv=5):
         """
-            Benckmarks SVD algorithms : from surprise import SVD
+            Benckmarks KNNBasic algorithms : from surprise import SVD
         """
         data = self.data
         algo = KNNBasic()
@@ -353,33 +354,45 @@ class Suprise_Benchmarks:
         print("Returned the KNNBasic results!")
         return res
 
+    def SlopeOne(self,cv=5):
+        """
+            Benckmarks KNNBasic algorithms : from surprise import SVD
+        """
+        data = self.data
+        algo = SlopeOne()
+        res = cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=5, verbose=True)
+        print("Returned the SlopeOne results!")
+        return res
+
 # -------------------------------------------------------------------
 # Main Functions (For Test!!!)
 # -------------------------------------------------------------------
 data_file = "/home/Colin/txtData/U10I10_Iterated_Data/R5_init1to5_U10I10_mn3_Iter20/No4_iteration.txt"
 #  preCom_file = "/home/Colin/GitHubFiles/new_WITF_data/R5_init1to50_mn3_Iter20/.txt"
-#  BM = BenchMarks(data_file)
-#  BM.run()
+BM = BenchMarks(data_file)
+BM.run()
 #  UCF = BM.UserCF
 #  BM.ParseTestSets()
 #  BM.ParseTrainSets()
-FILE = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt"
-SAVE = "/home/Colin/txtData/Benchmarks/All_raw_data_csv_U10I10/all_data_U10I10.csv"
+FILE = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User5_Item5/new_raw_data_for_WITF_py.txt"
+SAVE = "/home/Colin/txtData/Benchmarks/All_raw_data_csv_U5I5/all_data_U5I5.csv"
 #  allMats = BM.making_a_csv(FILE,SAVE)
 
-# ----------------------------------------------------------------------
-# Suprise Parts
-# ----------------------------------------------------------------------
-file_path = SAVE
-SB = Suprise_Benchmarks(file_path)
+#  # ----------------------------------------------------------------------
+#  # Suprise Parts
+#  # ----------------------------------------------------------------------
+#  file_path = SAVE
+#  SB = Suprise_Benchmarks(file_path)
 #  res = SB.SVD()
 #  print(res)
 #  res = SB.SVDpp()
 #  print(res)
 #  res = SB.NMF()
 #  print(res)
-res = SB.KNNBasic()
-print(res)
+#  res = SB.KNNBasic()
+#  print(res)
+#  res = SB.SlopeOne()
+#  print(res)
 #  reader = Reader(line_format=u'userID,itemID,rating', sep=',')
 #  data = Dataset.load_from_file(file_path, reader=reader)
 #  df_none = pd.read_csv(file_path,header=None)

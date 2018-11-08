@@ -21,7 +21,7 @@ from functionDrafts import *
 class WITF:
     ''' Class for the WITF data pre-computing '''
     
-    def __init__(self,SaveFile,R_latent_feature_Num=5,init_range=(1,6),target_cateID=4,ratios=0.8,noiseCount=0,add_noise_times=5):
+    def __init__(self,raw_data,SaveFile,R_latent_feature_Num=5,init_range=(1,6),target_cateID=4,ratios=0.8,noiseCount=0,add_noise_times=5):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -40,6 +40,8 @@ class WITF:
         self.add_noise_times = add_noise_times
         self.R_latent_feature_Num = R_latent_feature_Num
         print("R is %d!" %self.R_latent_feature_Num)
+        self.raw_data_file = raw_data
+        print("RawDataFile is %s!" %self.raw_data_file)
         self.SaveFile = SaveFile
         print("SaveFile is %s!" %self.SaveFile)
         self.init_range = init_range
@@ -49,8 +51,8 @@ class WITF:
         # ****************************************************************************
         # 读取由 TensorIrr产生的数据(txt files)
         # self.raw_data.keys() : userPos, itemPos, matrix, ratingsPos
-        self.raw_data = \
-        load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User5_Item5/new_raw_data_for_WITF_py.txt")
+        self.raw_data = load_from_txt(self.raw_data_file)
+        #  load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt")
         # load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
         # ****************************************************************************
         # ****************************************************************************
@@ -391,6 +393,7 @@ class WITF:
         self.training_sparMats_dic["matrix"] = self.raw_sparMats_dic.copy()
         self.test_data_dic["target_cateID"] = target_cateID
         self.test_data_dic["ratio"] = ratios
+        print("Target_Cate is %d!" %target_cateID)
         target_sparMat = self.raw_sparMats_dic[target_cateID]
         row_NonZero = target_sparMat.nonzero()[0]
         col_NonZero = target_sparMat.nonzero()[1]
@@ -544,8 +547,19 @@ class WITF:
 # ================================================================================================
 #   Main Fucntions
 # ================================================================================================
-filename = "/home/Colin/GitHubFiles/U5I5_PreCom_Data/R5_init50to60_U5I5_preCom_Data/new_WITF_precomputed_Data.txt"
-witf = WITF(SaveFile=filename,R_latent_feature_Num=5,init_range=(50,60))
+U = 10
+I = 10 
+init_left = 20
+init_right = 30
+TC = 40
+R = 5
+
+raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User" + str(U) + "_Item" + str(I) + "/new_raw_data_for_WITF_py.txt"
+#  raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt"
+
+filename = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
+#  filename = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init50to60_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
+witf = WITF(raw_data=raw_data_file,SaveFile=filename,R_latent_feature_Num=R,target_cateID=TC,init_range=(init_left,init_right))
 witf.main_proceduce()
 #  cate4 = witf.training_sparMats_dic["matrix"][4]
 #  cate4_t = cate4.T

@@ -1,7 +1,8 @@
 # Python3 # Filename: WITF.py
 # Usages : WITF model codes
 
-import random import math
+import random 
+import math
 import numpy as np
 import scipy
 
@@ -31,7 +32,8 @@ class Test_Accuracy:
         self.U = self.data["U"]
         self.C = self.data["C"]
         self.V = self.data["V"]
-        self.Pk = self.data["Pk"] cate_index = 4
+        self.Pk = self.data["Pk"] 
+        cate_index = 4
         C_k_row = self.C.getrow(cate_index).toarray()[0]
         Sigma_k = SM_diags(C_k_row)
         self.Uk = Sigma_k.dot((self.U).T)
@@ -147,7 +149,11 @@ class Test_Accuracy:
         #  Pk = self.Pk[4]
         #  Vk = (Pk.dot(self.V)).T
         Uk_i = self.Uk.getcol(userID)
-        Vk_j = self.Vk.getcol(itemPos)
+        try:
+            Vk_j = self.Vk.getcol(itemPos)
+        except IndexError:
+            return 3
+        #  Vk_j = self.Vk.getcol(itemPos)
         rating_mat = (Uk_i.T).dot(Vk_j)
         preRating = rating_mat.toarray()[0][0]
         return preRating
@@ -163,7 +169,10 @@ class Test_Accuracy:
         #  Pk = self.Pk[4]
         #  Vk = (Pk.dot(self.V)).T
         Uk_i = self.Uk.getcol(userID)
-        Vk_j = self.Vk.getcol(itemPos)
+        try:
+            Vk_j = self.Vk.getcol(itemPos)
+        except IndexError:
+            return 3
         rating_mat = (Uk_i.T).dot(Vk_j)
         preRating = rating_mat.toarray()[0][0]
         if preRating > 4.5:
@@ -194,7 +203,7 @@ DATA = [ ]
 #  ObjFunctions = load_from_txt(filename1)
 fileNUM = 20
 for i in range(fileNUM):
-    filename = "/home/Colin/txtData/R5_init1to_mn3_Iter20/No" + str(i) + "_iteration.txt"
+    filename = "/home/Colin/txtData/U10I10_Iterated_Data/R5_init20to30_U10I10_TC24_mn3_Iter20/No" + str(i) + "_iteration.txt"
     Data = Test_Accuracy(filename,i)
     RMSE = Data.test_for_all_users_RMSE()
     RMSE_Tuning = Data.test_for_all_users_RMSE_Tuning()

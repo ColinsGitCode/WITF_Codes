@@ -823,15 +823,27 @@ class WITF_Iterations:
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
-txtfile = "/home/Colin/GitHubFiles/U5I5_PreCom_Data/R5_init50to60_U5I5_preCom_Data/new_WITF_precomputed_Data.txt"
-savedir = "/home/Colin/txtData/U5I5_Iterated_Data/R5_init50to60_U5I5_mn3_Iter20"
+U = 10
+I = 10 
+init_left = 20
+init_right = 30
+TC = 40
+R = 5
+UserNumbers = 2403
+IterTimes = 20
+mn = 3
+txtfile = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
+#  txtfile = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init1to5_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
+savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(IterTimes) 
+# print(txtfile)
+# print(savedir)
 #txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
-IWITF = WITF_Iterations(txtfile,savedir,3,3)
+IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
 print("Created the instant of WITF_Iterations class which named IWITF!")
 starttime = datetime.datetime.now()
 #  IWITF.main_proceduce(20,50)
 #  IWITF.main_proceduce(2,100)
-IWITF.main_proceduce(20,6682)
+IWITF.main_proceduce(IterTimes,UserNumbers)
 endtime = datetime.datetime.now()
 executetime = (endtime - starttime).seconds
 print("Finished All !!!!, and the Execute Time is %d" %executetime)
