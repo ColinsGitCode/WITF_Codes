@@ -144,7 +144,45 @@ class BenchMarks():
             #  f_csv.writerow(headers)
             f_csv.writerows(LIST)
         print("Writed CSV File!")
-        return True 
+        baseline = Suprise_Benchmarks(saveFile)
+        baseline.run()
+        CateBaselines = baseline.baselines_dic
+        return CateBaselines 
+
+    def making_a_csv_for_each_cate(self,dataFile,saveFile_prex):
+        """
+            making a csv file like MovieLens Datasets (csv file)
+            By using the raw rating matrix of each category
+        """
+        raw_data = load_from_txt(dataFile)
+        train_mats = raw_data["matrix"]
+        CateBaselines = { }
+        for cateID in train_mats.keys():
+            print("Making csv file in cate_No.%d!" %cateID)
+            whole_train_matirx = train_mats[cateID]
+            #  whole_train_matirx = whole_train_matirx.todok()
+            print("Finished get a whole matrix of cate_No.%d" %cateID)
+            pbar = tqdm(range(whole_train_matirx.shape[0]))
+            LIST = [ ]
+            for i in pbar:
+                pbar.set_description("Making CSV --> Scan Each user in Matrix:")
+                row_i = whole_train_matirx[i]
+                row_i_col = row_i.nonzero()[1]
+                for j in row_i_col:
+                    rating = whole_train_matirx[i,j]
+                    LIST.append((i,j,rating))
+            print("Finished get a whole LIST of cate_No.%d!" %cateID)
+            headers = ['userID','itemID','rating']
+            saveFile = saveFile_prex + "/data_for_TC" + str(cateID) + ".csv"
+            with open(saveFile,'w') as f:
+                f_csv = csv.writer(f)
+            #  f_csv.writerow(headers)
+                f_csv.writerows(LIST)
+            print("Writed CSV File of cate_No.%d!" %cateID)
+            baseline = Suprise_Benchmarks(saveFile)
+            baseline.run()
+            CateBaselines[cateID] = baseline.baselines_dic
+        return  CateBaselines
 
 
 class UserBasedCF:
@@ -364,20 +402,80 @@ class Suprise_Benchmarks:
         print("Returned the SlopeOne results!")
         return res
 
+    def run(self): 
+        res_dic = { }
+        print("Calculating SlopeOne ............") 
+        res= self.SlopeOne()
+        res_dic["SlopeOne"] = res
+        print(res)
+        print("Calculating KNNBasic ............") 
+        res= self.KNNBasic()
+        res_dic["KNNBasic"] = res
+        print(res)
+        print("Calculating SVD ............") 
+        res= self.SVD()
+        res_dic["SVD"] = res
+        print(res)
+        #  print("Calculating SVD++ ............") 
+        #  res= self.SVDpp()
+        #  res_dic["SVD++"] = res
+        #  print(res)
+        print("Calculating NMF ............") 
+        res= self.NMF()
+        res_dic["NMF"] = res
+        print(res)
+        self.baselines_dic = res_dic
+        return True
+
+
 # -------------------------------------------------------------------
 # Main Functions (For Test!!!)
 # -------------------------------------------------------------------
-data_file = "/home/Colin/txtData/U10I10_Iterated_Data/R5_init1to5_U10I10_mn3_Iter20/No4_iteration.txt"
+U = 5
+I = 5 
+init_left = 1
+init_right = 5
+TC = 4
+R = 5
+mn = 3
+Iter_Time = 20
+Iter_No = 4
+# -------------------------------------------------------------------
+Data_File = "/home/Colin/txtData/U10I10_Iterated_Data/R5_init1to5_U10I10_TC4_mn3_Iter20/No4_iteration.txt"
+data_file_part0 = "/home/Colin/txtData/U" + str(U) + "I" + str(I) 
+data_file_part1 = "_Iterated_Data/R" + str(R) + "_init" +  str(init_left) + "to" + str(init_right)  
+data_file_part2 = "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(Iter_Time) 
+data_file_part3 = "/No" + str(Iter_No) + "_iteration.txt"
+data_file = data_file_part0 + data_file_part1 + data_file_part2 + data_file_part3
+
 #  preCom_file = "/home/Colin/GitHubFiles/new_WITF_data/R5_init1to50_mn3_Iter20/.txt"
-BM = BenchMarks(data_file)
+
+BM = BenchMarks(Data_File)
 BM.run()
 #  UCF = BM.UserCF
 #  BM.ParseTestSets()
 #  BM.ParseTrainSets()
-FILE = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User5_Item5/new_raw_data_for_WITF_py.txt"
-SAVE = "/home/Colin/txtData/Benchmarks/All_raw_data_csv_U5I5/all_data_U5I5.csv"
-#  allMats = BM.making_a_csv(FILE,SAVE)
 
+#  FILE = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User5_Item5/new_raw_data_for_WITF_py.txt"
+FILE_part0 = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/" 
+FILE_part1 = "User" + str(U) + "_Item" + str(I) + "/new_raw_data_for_WITF_py.txt"
+FILE = FILE_part0 + FILE_part1
+
+UandI = "U" + str(U) + "I" + str(I)
+SAVE = "/home/Colin/txtData/Benchmarks/All_raw_data_csv_" + UandI + "/all_data_" + UandI + ".csv"
+SAVE_prex = "/home/Colin/txtData/Benchmarks/All_raw_data_csv_" + UandI 
+#  SAVE = "/home/Colin/txtData/Benchmarks/All_raw_data_csv_U5I5/all_data_U5I5.csv"
+
+EachMats = BM.making_a_csv_for_each_cate(FILE,SAVE_prex)
+allMats = BM.making_a_csv(FILE,SAVE)
+RES = { }
+RES["EachCate"] = EachMats
+RES["Whole"] = allMats
+res_save_file = SAVE_prex + "/saved_each_and_whole_baselines_" + UandI + ".txt"
+save_to_txt(RES,res_save_file)
+print("Saved file is below:")
+print(res_save_file)
+print("Save EachCate and Whole Baselines Finished")
 #  # ----------------------------------------------------------------------
 #  # Suprise Parts
 #  # ----------------------------------------------------------------------
