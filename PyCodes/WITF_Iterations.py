@@ -98,6 +98,7 @@ class WITF_Iterations:
         self.V_Mats = saveData["V"] 
         self.C_Mats = saveData["C"] 
         self.Wkij_dic = saveData["omiga_ki"] 
+        self.userPos_ratings_itemPos = saveData["userPos_ratings_itemPos"]
         # ****************************************************************************
         # ****************************************************************************
         # self.cate_list = [4,17,24,29,40]
@@ -819,6 +820,13 @@ class WITF_Iterations:
         save_to_txt(saved_data,filename)
         return True
 
+    def cal_users_noisePos(self):
+        """
+            The function to calculate the noises postions for each user in each category
+            Just for one-time-iteration!!!
+        """
+        pass
+        return True
 
 
 # ------------------------------------------------------------------------------------------------------

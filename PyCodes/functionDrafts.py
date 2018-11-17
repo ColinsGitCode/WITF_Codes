@@ -19,3 +19,13 @@ def Drafts_get_noraml_noise(mu_k,sigma,sampleNo):
     np.random.seed(0)
     s = np.random.normal(mu_k, sigma, sampleNo )
     return s
+
+def Drafts_del_dict(Arr,B_dic):
+    for ele in Arr:
+        try:
+            del B_dic[ele]
+        except KeyError:
+            pass
+    return B_dic
+
+

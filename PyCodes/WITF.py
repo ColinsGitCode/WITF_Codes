@@ -6,6 +6,7 @@ from tqdm import tqdm
 import random
 import numpy as np
 import scipy
+import copy
 
 from scipy.sparse import dok_matrix
 from scipy.sparse import coo_matrix
@@ -21,7 +22,7 @@ from functionDrafts import *
 class WITF:
     ''' Class for the WITF data pre-computing '''
     
-    def __init__(self,raw_data,SaveFile,R_latent_feature_Num=5,init_range=(1,6),target_cateID=4,ratios=0.8,noiseCount=0,add_noise_times=5):
+    def __init__(self,raw_data,SaveFile,R_latent_feature_Num=5,init_range=(1,6),target_cateID=4,ratios=0.8,noiseCount=2,add_noise_times=5):
         """
          load raw data from txt files
          1. sparse matrix : key --> "matrix" , value --> TensorTrr.sparse_matrix_dic(dic)
@@ -246,31 +247,47 @@ class WITF:
         print("Start --> cal_users_noisePos")
         pbar_lv1 = tqdm(self.userPos_ratings_itemPos.keys())
         #  for user_pos in self.userPos_ratings_itemPos:
+        #  user_pos 为按 userID 的排列顺序，user_pos = [0,1,2,......]
         for user_pos in pbar_lv1:
+            # 遍历每一个用户
             pbar_lv1.set_description("Each User:")
             self.user_noisePos[user_pos] = { }
             ratingPos_dic = self.userPos_ratings_itemPos[user_pos]
             pbar_lv2 = tqdm(ratingPos_dic.keys())
             #  for cateID in ratingPos_dic:
             for cateID in pbar_lv2:
+                # 遍历每个用户的每一个分类，查看都是那些item被评价了
                 pbar_lv2.set_description("Each Cate:")
                 self.user_noisePos[user_pos][cateID] = [ ]
+                # 提取该用户在该分类的所有评价的item (itemPos) , 注意非ItemID
                 rating_cateID = ratingPos_dic[cateID]
                 if rating_cateID[0] is False:
+                    # 如果该用户在该分类没有评分
                     for time in range(self.add_noise_times):
-                        selectedPos = random.sample(self.trainSets_stats_dic[cateID]["allItemPos"].keys(),self.noiseCount)
+                        allItemPos_dic = self.trainSets_stats_dic[cateID]["allItemPos"]
+                        try:
+                            selectedPos = random.sample(allItemPos_dic.keys(),self.noiseCount)
+                            #  selectedPos = random.sample(self.trainSets_stats_dic[cateID]["allItemPos"].keys(),self.noiseCount)
+                        except ValueError:
+                            selectedPos = self.trainSets_stats_dic[cateID]["allItemPos"].keys()
+                            # return False
+                            # selectedPos = []
                         self.user_noisePos[user_pos][cateID].append(selectedPos)
                 else:
                     userPos_rating_cateID = self.userPos_ratings_itemPos[user_pos][cateID][1]
                     all_itemPos_cateID_dic = self.trainSets_stats_dic[cateID]["allItemPos"]
-                    for itemPos in userPos_rating_cateID:
-                        try:
-                            del all_itemPos_cateID_dic[itemPos]
-                        except KeyError:
-                            pass
+                    #  for itemPos in userPos_rating_cateID:
+                        #  try:
+                            #  del all_itemPos_cateID_dic[itemPos]
+                        #  except KeyError:
+                            #  pass
+                    all_itemPos_cateID_dic = self.Drafts_del_dict(userPos_rating_cateID,all_itemPos_cateID_dic)    
                     blankPos = sorted(all_itemPos_cateID_dic.keys())
                     for time in range(self.add_noise_times):
-                        selectedPos = random.sample(blankPos,self.noiseCount)
+                        if len(blankPos) > self.noiseCount:
+                            selectedPos = random.sample(blankPos,self.noiseCount)
+                        else:
+                            selectedPos = blankPos
                         self.user_noisePos[user_pos][cateID].append(selectedPos)
                 #  print("Finished calculate %d group users noises postions for userPos:%d in cateID:%d!" %(self.add_noise_times,user_pos,cateID)) 
             #  print("Finished userPos:%d <--------------------> " %user_pos)
@@ -278,6 +295,15 @@ class WITF:
         pbar_lv1.close()
         print("Finsihed --> cal_users_noisePos")
         return True
+
+    def Drafts_del_dict(self,Arr,B_dic):
+        deep_B = copy.deepcopy(B_dic)
+        for ele in Arr:
+            try:
+                del deep_B[ele]
+            except KeyError:
+                pass
+        return deep_B
 
     def add_noises(self):
         """
@@ -329,6 +355,8 @@ class WITF:
         """
             计算训练集的stats，包括：mean,mu_k,sigma等重要数据，以便在进行迭代更新
             的时候进行直接使用，减少迭代的计算时间
+            主要是为了添加噪声的时候方便使用
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         """
         print("Start --> cal_stats_for_trainSets")
         for cateID in self.training_sparMats_dic["matrix"]:
@@ -348,6 +376,7 @@ class WITF:
             self.trainSets_stats_dic[cateID]["sigma"] = sigma
             itemCount = len(self.itemPos_dic[cateID][1])
             # 用于存储所有itemPos的字典
+            # ???????????????????? 作用未知，忘记了！！！
             itemPos_dic = { }
             for itemPos in range(itemCount):
                 #  itemPos_li.append(itemPos)
@@ -356,28 +385,6 @@ class WITF:
             self.trainSets_stats_dic[cateID]["allItemPos"] = itemPos_dic
             #  self.all_blank_pos_dic[cateID] = itemPos_li
         print("Finished --> cal_stats_for_trainSets")
-        return True
-
-    def bak_cal_stats_for_trainSets(self):
-        for cateID in self.training_sparMats_dic["matrix"]:
-            self.all_blank_pos_dic[cateID] = [ ]
-            self.trainSets_stats_dic[cateID] = { }
-            sparMat = self.training_sparMats_dic["matrix"][cateID]
-            mean_mats = (sparMat.sum())//(len(sparMat.nonzero()[0]))
-            if mean_mats == 4:
-                sigma = 0.5
-            elif mean_mats == 3:
-                sigma = 1
-            else:
-                sigma = 0.5
-            self.trainSets_stats_dic[cateID]["mean"] = mean_mats
-            self.trainSets_stats_dic[cateID]["mu_k"] = mean_mats
-            self.trainSets_stats_dic[cateID]["sigma"] = sigma
-            itemCount = len(self.itemPos_dic[cateID][1])
-            itemPos_li = [ ]
-            for itemPos in range(itemCount):
-                itemPos_li.append(itemPos)
-            self.all_blank_pos_dic[cateID] = itemPos_li
         return True
 
     def split_data_byRatios(self):
@@ -395,6 +402,7 @@ class WITF:
         self.test_data_dic["ratio"] = ratios
         print("Target_Cate is %d!" %target_cateID)
         target_sparMat = self.raw_sparMats_dic[target_cateID]
+        # 找到所有的非零的 row_index and col_index
         row_NonZero = target_sparMat.nonzero()[0]
         col_NonZero = target_sparMat.nonzero()[1]
         # 进行分割抽取，抽取位置的选择由 “Drafts_samples"函数决定
@@ -408,7 +416,9 @@ class WITF:
             col = col_NonZero[index]
             rating = target_sparMat[row,col]
             # the randomly select data is deleted(changed to 0 ??)
+            # 被选取的数据是不是要设置为0，这点需要考虑
             target_sparMat[row,col] = 0
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             self.test_data_dic["dataDic"][(row,col)] = rating
             # update a element into test data
             # self.test_data_dic["datalist"].append((row,col,rating))
@@ -549,21 +559,27 @@ class WITF:
 # ================================================================================================
 U = 10
 I = 10 
-init_left = 20
-init_right = 30
-TC = 40
+init_left = 1
+init_right = 6
+TC = 4
 R = 5
+Iter_Times = 20
+Noise_Count_PerIter = 5 
 
 raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User" + str(U) + "_Item" + str(I) + "/new_raw_data_for_WITF_py.txt"
 #  raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt"
 
 filename = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
 #  filename = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init50to60_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
-witf = WITF(raw_data=raw_data_file,SaveFile=filename,R_latent_feature_Num=R,target_cateID=TC,init_range=(init_left,init_right))
-witf.main_proceduce()
-#  cate4 = witf.training_sparMats_dic["matrix"][4]
-#  cate4_t = cate4.T
-#  CATE = cate4_t.dot(cate4)
-#  U, SIGMA, V_t = SSL_svds(CATE,k=5)
-#print("Just create a WITF class object witf!")
+witf = WITF(raw_data=raw_data_file,SaveFile=filename,R_latent_feature_Num=R,target_cateID=TC,init_range=(init_left,init_right),noiseCount=Noise_Count_PerIter,add_noise_times=Iter_Times)
+# ---------------------------------------------------------------------------------
+# WITF Class Main Procedures
+# ---------------------------------------------------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# witf.main_proceduce()
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+witf.split_data_byRatios()
+witf.cal_stats_for_trainSets()
 
