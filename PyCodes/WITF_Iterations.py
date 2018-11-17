@@ -815,6 +815,7 @@ class WITF_Iterations:
         saved_data["V"] = self.V_Mats
         saved_data["C"] = self.C_Mats
         saved_data["Pk"] = self.P_k_dic
+        saved_data["target_cateID"] = self.target_cateID
         save_to_txt(saved_data,filename)
         return True
 
