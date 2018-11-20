@@ -6,6 +6,7 @@ from tqdm import tqdm
 import datetime
 import random
 import math
+import copy
 import numpy as np
 import scipy
 
@@ -51,7 +52,7 @@ class WITF_Iterations:
         # ****************************************************************************
         # the train dataset = 
         # { "target_cateID" : target_cateID, "ratio" : Ratios, "matrix" : sparMats_dic}
-        self.training_sparMats_dic = saveData["trainSets"] 
+        self.raw_training_sparMats_dic = saveData["trainSets"] 
         # ****************************************************************************
         # ****************************************************************************
         # Save Weight matrixs: W_kij
@@ -98,7 +99,7 @@ class WITF_Iterations:
         self.V_Mats = saveData["V"] 
         self.C_Mats = saveData["C"] 
         self.Wkij_dic = saveData["omiga_ki"] 
-        self.userPos_ratings_itemPos = saveData["userPos_ratings_itemPos"]
+        #  self.userPos_ratings_itemPos = saveData["userPos_ratings_itemPos"]
         # ****************************************************************************
         # ****************************************************************************
         # self.cate_list = [4,17,24,29,40]
@@ -142,6 +143,58 @@ class WITF_Iterations:
             pbar_iter_times.set_description("Each Iteration : ")
             #  print("Start --> Iteration Times : %d" %iter_times)
             # 3. 执行每次迭代，Do each time Iteration
+            self.sub_iterations_UVC(userCount)
+            # 4. 计算每次的迭代之后的 FBNorm
+            ForBe_Norm = self.cal_ObjFunc() 
+            FBNorm_li.append(ForBe_Norm)
+            #  filename = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/No" + str(iter_times) + "_iteration.txt"
+            #  filename = "/home/Colin/txtData/testTqdm50_newR30/No" + str(iter_times) + "_iteration.txt"
+            filename = self.SaveDir + "/No" + str(iter_times) + "_iteration.txt"
+            self.save_Data(filename,ForBe_Norm,iter_times)
+            #  print("Finished --> Iteration Times : %d" %iter_times)
+            #  print(" -----------------------------------------------------------")
+            #  print(" -----------------------------------------------------------")
+        pbar_iter_times.close()
+        #  FBNorm_li_filename = "/home/Colin/txtData/testTqdm50_newR30/FBNorm_li_newDatasets.txt"
+        FBNorm_li_filename = self.SaveDir + "/FBNorm_li_newDatasets.txt"
+        #  FBNorm_li_filename = "/home/Colin/txtData/IterSaves_Pk20_mn1_R15/FBNorm_li_newDatasets.txt"
+        save_to_txt(FBNorm_li,FBNorm_li_filename)
+        print("Finished main_proceduce() !")
+        print("------------------------------------------------------------")
+        return FBNorm_li
+
+    def new_main_proceduce(self,iter_num=50,userCount=6682):
+        """
+            main_proceduce for WITF_Iterations class
+            1. add_noises(): add noise for each user
+            2. assign_weights() assgin weights by a specific weights configurations
+                2.1 How to decide the weights, now set as all 1
+            3. Iterations (How to decided whether is convergences??????)
+               3.1 Sub-Iterations m (1~5): m=1
+               3.2 Sub-Iterations n (1~5): n=1
+        """
+        print("----------------In new_main_proceduce Function--------------")
+        # copy a data from self.raw_training_sparMats_dic
+        self.training_sparMats_dic = copy.deepcopy(self.raw_training_sparMats_dic)
+        print("Copy Raw TrainSets Finished!")
+        FBNorm_li = [ ]
+        # 计算初始数据的 FBNorm
+        ForBe_Norm = self.cal_ObjFunc() 
+        #  ForBe_Norm = 0
+        FBNorm_li.append(ForBe_Norm)
+        print("Start --> Doing Iterations!!!")
+        print("------------------------------------------------------------")
+        pbar_iter_times = tqdm(range(iter_num))
+        for iter_times in pbar_iter_times:
+        #  for iter_times in range(iter_num):
+            pbar_iter_times.set_description("Each Iteration : ")
+            #  print("Start --> Iteration Times : %d" %iter_times)
+            # 3. 执行每次迭代，Do each time Iteration
+            # # 拷贝一份原始的训练集，以免原始的训练集被改变
+            self.training_sparMats_dic = copy.deepcopy(self.raw_training_sparMats_dic)
+            # # 加入噪声进入训练集,每一次迭代加入的噪声位置都不同
+            self.add_noise(iter_times)
+            # # 开始自迭代过程
             self.sub_iterations_UVC(userCount)
             # 4. 计算每次的迭代之后的 FBNorm
             ForBe_Norm = self.cal_ObjFunc() 
@@ -441,7 +494,26 @@ class WITF_Iterations:
         self.Y_n_dic["Y_3"] = np.reshape(np.moveaxis(Y,2,0),(Y.shape[2], -1),order='F')
         return True
 
-    def add_noises(self):
+    def add_noises(self,It_No=0):
+        """
+            add noises(virtual data) for each user in each category in each Iteration Time
+        """
+        for cateID in self.training_sparMats_dic["matrix"]:
+            mu_k = self.trainSets_stats_dic[cateID]["mu_k"]
+            sigma = self.trainSets_stats_dic[cateID]["sigma"]
+            for user_pos in range(len(self.userPos_li)):
+                selectedPos = self.user_noisePos[user_pos][cateID][It_No]
+                #  selectedPos = self.user_noisePos[user_pos][cateID][0]
+                noise_li = np.random.normal(mu_k,sigma,self.noiseCount)
+                for index in range(self.noiseCount):
+                    blank_col = selectedPos[index]
+                    #  blank_col = selectd_blanks[index]
+                    noise = noise_li[index]
+                    self.training_sparMats_dic["matrix"][cateID][user_pos,blank_col] = noise
+        self.training_sparMats_dic["noise"] = True
+        return True
+
+    def add_noises_bak(self):
         """
             add noises(virtual data) for each user in each category
         """
@@ -834,33 +906,33 @@ class WITF_Iterations:
 # ------------------------------------------------------------------------------------------------------
 U = 10
 I = 10 
-init_left = 20
-init_right = 30
-TC = 40
+init_left = 1
+init_right = 6
+TC = 4
 R = 5
 UserNumbers = 2403
 IterTimes = 20
 mn = 3
-txtfile = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
+txtfile = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
 #  txtfile = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init1to5_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
-savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(IterTimes) 
+savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(IterTimes) 
 # print(txtfile)
 # print(savedir)
 #txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
 IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
 print("Created the instant of WITF_Iterations class which named IWITF!")
 starttime = datetime.datetime.now()
-#  IWITF.main_proceduce(20,50)
-#  IWITF.main_proceduce(2,100)
-IWITF.main_proceduce(IterTimes,UserNumbers)
-endtime = datetime.datetime.now()
-executetime = (endtime - starttime).seconds
-print("Finished All !!!!, and the Execute Time is %d" %executetime)
 
+# main_proceduce 函数，程序的主流程，即算法的 Iteration 部分
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# IWITF.main_proceduce(IterTimes,UserNumbers)
+#  endtime = datetime.datetime.now()
+#  executetime = (endtime - starttime).seconds
+#  print("Finished All !!!!, and the Execute Time is %d" %executetime)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-# --------- end lines -------------------
-#  IWITF.sub_iterations(100)
-#  IWITF.sub_iterations_UVC(1000)
-# IWITF.sub_iterations_UVC(100)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Test parts
+
 
 

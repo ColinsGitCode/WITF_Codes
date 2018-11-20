@@ -579,7 +579,7 @@ init_right = 6
 TC = 4
 R = 5
 Iter_Times = 20
-Noise_Count_PerIter = 5 
+Noise_Count_PerIter = 2 
 
 raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User" + str(U) + "_Item" + str(I) + "/new_raw_data_for_WITF_py.txt"
 #  raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt"
@@ -604,6 +604,11 @@ witf.randomly_init_U_C_V()
 print("Finshed randomly_init_U_C_V() Functions")
 witf.find_Pk()
 witf.init_ratings_weights_matrix()
+witf.set_observation_weights()
+witf.cal_Wki()
+witf.save_PreComputed_data()
+print("Finished Test WITF.py!")
+
 
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
