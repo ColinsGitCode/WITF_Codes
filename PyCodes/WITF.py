@@ -39,8 +39,8 @@ class WITF:
         self.ratios = ratios
         self.noiseCount = noiseCount
         self.add_noise_times = add_noise_times
-        self.R_latent_feature_Num = R_latent_feature_Num
-        print("R is %d!" %self.R_latent_feature_Num)
+        #  self.R_latent_feature_Num = R_latent_feature_Num
+        #  print("R is %d!" %self.R_latent_feature_Num)
         self.raw_data_file = raw_data
         print("RawDataFile is %s!" %self.raw_data_file)
         self.SaveFile = SaveFile
@@ -69,6 +69,16 @@ class WITF:
         # ****************************************************************************
         # ****************************************************************************
         self.raw_sparMats_dic = self.raw_data["matrix"]
+        # 计算 R 的值，(Latent Feature Numbers)
+        users_count = 0 # 用户总数
+        ratings_count = 0 # 所有的评分
+        for cateID in self.raw_sparMats_dic.keys():
+            cate_raw_mats = self.raw_sparMats_dic[cateID]
+            users_count = (cate_raw_mats.shape)[0]
+            ratings_count += len(cate_raw_mats.nonzero()[0])
+        R = ratings_count//users_count + 1 
+        self.R_latent_feature_Num = R
+        print("R is %d!" %self.R_latent_feature_Num)
         # ****************************************************************************
         # ****************************************************************************
         # 保存每个用户的评分的(ratings_postions)位置
@@ -191,15 +201,17 @@ class WITF:
             Calculate the constrant Pk for each category by SVD
         """
         catelist = self.training_sparMats_dic["matrix"].keys()
-        cate_list = [ ]
+        cate_list = [ ]   # cate_list = [4,17,24,29,40]
         for key in catelist:
             cate_list.append(key)
         for cate_index in range(len(catelist)):
         #  for cateID in self.training_sparMats_dic["matrix"]:
-            cateID = cate_list[cate_index]
+            cateID = cate_list[cate_index] # cateID = 4,17,24,29,40
+            # Raw data matrix (a cate) X_k
             X_k = self.training_sparMats_dic["matrix"][cateID]
             C_k_row = self.C_Mats.getrow(cate_index).toarray()[0]
             Sigma_k = SM_diags(C_k_row)
+            # SVD Operations
             SVD_mats = X_k.T
             SVD_mats = SVD_mats.dot(self.U_Mats)
             SVD_mats = SVD_mats.dot(Sigma_k)
@@ -463,12 +475,15 @@ class WITF:
         根据每个Category 的用户数和item数,初始化每个category的weight matirx (w_kij) 
         此weights matrix 主要是用于表示每个rating的权重，属于 weights over ratings not for domains 
         '''
+        # users_count : 用户总数
         users_conuts = len(self.userPos_li)  # 以前的用户选择标准
         for cate in self.itemPos_dic:
+            # items_counts : 每一个cate的 item 数目
             items_counts = len(self.itemPos_dic[cate][1])
             sm = dok_matrix((users_conuts,items_counts),
                     dtype=np.float32)
             self.ratings_weights_matrixs_dic[cate] = sm
+            # 初始化 W_kij 完毕, 所有内部元素（即每一个评分的权重）全部为0
             print("ratings_weights_matrix for category: %d, size is%d and %d!"
                     %(cate,users_conuts,items_counts))
         return True
@@ -569,7 +584,7 @@ Noise_Count_PerIter = 5
 raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User" + str(U) + "_Item" + str(I) + "/new_raw_data_for_WITF_py.txt"
 #  raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt"
 
-filename = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
+filename = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
 #  filename = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init50to60_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
 witf = WITF(raw_data=raw_data_file,SaveFile=filename,R_latent_feature_Num=R,target_cateID=TC,init_range=(init_left,init_right),noiseCount=Noise_Count_PerIter,add_noise_times=Iter_Times)
 # ---------------------------------------------------------------------------------
@@ -580,6 +595,20 @@ witf = WITF(raw_data=raw_data_file,SaveFile=filename,R_latent_feature_Num=R,targ
 # witf.main_proceduce()
 
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 witf.split_data_byRatios()
 witf.cal_stats_for_trainSets()
+witf.cal_users_noisePos()
+# 需要认真考虑这个初始化函数 : randomly_init_U_C_V()
+witf.randomly_init_U_C_V()
+print("Finshed randomly_init_U_C_V() Functions")
+witf.find_Pk()
+witf.init_ratings_weights_matrix()
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

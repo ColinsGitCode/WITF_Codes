@@ -200,13 +200,26 @@ class Test_Accuracy:
 U = 10
 I = 10 
 init_left = 1
-init_right = 20
-TC = 4
-CI = 0
+init_right = 10
+TC = 17
 R = 5
 UserNumbers = 2403
 IterTimes = 20
 mn = 3
+
+# cate_index : 
+if TC is 4:
+    CI = 0
+elif TC is 17:
+    CI = 1
+elif TC is 24:
+    CI = 2
+elif TC is 29:
+    CI = 3
+elif TC is 40:
+    CI = 4
+else:
+    CI = 6
 
 #  txtfile = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
 results_savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(IterTimes) 
