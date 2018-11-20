@@ -194,7 +194,10 @@ class WITF_Iterations:
             self.training_sparMats_dic = copy.deepcopy(self.raw_training_sparMats_dic)
             # # 加入噪声进入训练集,每一次迭代加入的噪声位置都不同
             self.add_noise(iter_times)
-            # # 开始自迭代过程
+            # # 设置 每一个领域 的 w_k 权重
+            self.assign_weights_costSensitive(alpha_k=1)
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            # # 开始自迭代过程, Revise 截止到这里，until Nov.20th
             self.sub_iterations_UVC(userCount)
             # 4. 计算每次的迭代之后的 FBNorm
             ForBe_Norm = self.cal_ObjFunc() 
@@ -236,9 +239,25 @@ class WITF_Iterations:
             FBNorm_li.append(ForBe_Norm)
         return FBNorm_li
 
+    def assign_weights_costSensitive(self,alpha_k=1):
+        """
+            function to assgin weights to irregular tensor
+            此函数用 Cost-Sensitive 的方法 去设置 每个领域的权重
+        """
+        # 1. 计算比例
+        target_mats = self.training_sparMats_dic["matrix"][self.target_cateID]
+        target_mats_counts = target_mats.count_nonzero()
+        for cateID in self.training_sparMats_dic["matrix"].keys():
+            mats_counts = self.training_sparMats_dic["matrix"][cateID].count_nonzero()
+            ratio = target_mats_counts/mats_counts*alpha_k
+            new_mats = self.training_sparMats_dic["matrix"][cateID]
+            self.training_sparMats_dic["matrix"][cateID] = new_mats * ratio
+        return True
+
     def assign_weights(self):
         """
             function to assgin weights to irregular tensor
+            准备用 Gentic Algorithm 进行搜索 权重
         """
         # now set as 1,1,1,1,1
         pass
@@ -509,6 +528,9 @@ class WITF_Iterations:
                     blank_col = selectedPos[index]
                     #  blank_col = selectd_blanks[index]
                     noise = noise_li[index]
+                    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    # 在这里可以同时设置 noise 的权重， 现在默认为1，和真正的评分一样
+                    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                     self.training_sparMats_dic["matrix"][cateID][user_pos,blank_col] = noise
         self.training_sparMats_dic["noise"] = True
         return True
