@@ -53,7 +53,8 @@ class WITF:
         # 读取由 TensorIrr产生的数据(txt files)
         # self.raw_data.keys() : userPos, itemPos, matrix, ratingsPos
         self.raw_data = load_from_txt(self.raw_data_file)
-        #  load_from_txt("/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt")
+        #  load_from_txt
+		# ("/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt")
         # load_from_txt("/home/Colin/txtData/forWITFs/WITF_raw_data_5_domains.txt")
         # ****************************************************************************
         # ****************************************************************************
@@ -72,6 +73,7 @@ class WITF:
         # 计算 R 的值，(Latent Feature Numbers)
         users_count = 0 # 用户总数
         ratings_count = 0 # 所有的评分
+        # 计算 R 的值，有每个用户的平均评分值来决定
         for cateID in self.raw_sparMats_dic.keys():
             cate_raw_mats = self.raw_sparMats_dic[cateID]
             users_count = (cate_raw_mats.shape)[0]
@@ -188,7 +190,11 @@ class WITF:
         saveData["U"] = self.U_Mats
         saveData["V"] = self.V_Mats
         saveData["C"] = self.C_Mats
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        # 计算 Y 的矩阵展开，考虑消除，放入到每一次的 自迭代中进行执行
+        # 可能比较费时间
         self.get_Y_n()
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         saveData["Y_n"] = self.Y_n_dic
         #  filename = "/home/Colin/GitHubFiles/new_WITF_data/R5_init1to100_preCom_Data/new_WITF_precomputed_Data.txt"
         #  filename = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
@@ -213,6 +219,7 @@ class WITF:
             Sigma_k = SM_diags(C_k_row)
             # SVD Operations
             SVD_mats = X_k.T
+            # Scipy.sparse.matrix.dot() 不会改变原有的数据（矩阵或者向量）
             SVD_mats = SVD_mats.dot(self.U_Mats)
             SVD_mats = SVD_mats.dot(Sigma_k)
             SVD_mats = SVD_mats.dot(self.V_Mats.T)
@@ -279,13 +286,15 @@ class WITF:
                         allItemPos_dic = self.trainSets_stats_dic[cateID]["allItemPos"]
                         try:
                             selectedPos = random.sample(allItemPos_dic.keys(),self.noiseCount)
-                            #  selectedPos = random.sample(self.trainSets_stats_dic[cateID]["allItemPos"].keys(),self.noiseCount)
+                            #  selectedPos = random.sample
+                            #      (self.trainSets_stats_dic[cateID]["allItemPos"].keys(),self.noiseCount)
                         except ValueError:
                             selectedPos = self.trainSets_stats_dic[cateID]["allItemPos"].keys()
                             # return False
                             # selectedPos = []
                         self.user_noisePos[user_pos][cateID].append(selectedPos)
                 else:
+                    # 如果该用户在该分类 存在 评分
                     userPos_rating_cateID = self.userPos_ratings_itemPos[user_pos][cateID][1]
                     all_itemPos_cateID_dic = self.trainSets_stats_dic[cateID]["allItemPos"]
                     #  for itemPos in userPos_rating_cateID:
@@ -301,7 +310,8 @@ class WITF:
                         else:
                             selectedPos = blankPos
                         self.user_noisePos[user_pos][cateID].append(selectedPos)
-                #  print("Finished calculate %d group users noises postions for userPos:%d in cateID:%d!" %(self.add_noise_times,user_pos,cateID)) 
+                #  print("Finished calculate %d group users noises postions 
+                #  for userPos:%d in cateID:%d!" %(self.add_noise_times,user_pos,cateID)) 
             #  print("Finished userPos:%d <--------------------> " %user_pos)
             pbar_lv2.close()
         pbar_lv1.close()
@@ -309,6 +319,10 @@ class WITF:
         return True
 
     def Drafts_del_dict(self,Arr,B_dic):
+        """
+            根据数组Arr中的元素来删除字典B_dic中相应键值
+            deepcopy B_dic 防止 B_dic 中的值改变
+        """
         deep_B = copy.deepcopy(B_dic)
         for ele in Arr:
             try:
@@ -317,7 +331,7 @@ class WITF:
                 pass
         return deep_B
 
-    def add_noises(self):
+    def zoneBak_add_noises(self):
         """
             add noises(virtual data) for each user in each category
             主要在迭代类中使用，这里只是草稿，备用
@@ -341,7 +355,7 @@ class WITF:
         self.training_sparMats_dic["noise"] = True
         return True
 
-    def add_noises_verion_1(self):
+    def zoneBak_add_noises_verion_1_old(self):
         """
             add noises(virtual data) for each user in each category
             主要在迭代类中使用，这里只是草稿，备用
@@ -409,7 +423,9 @@ class WITF:
         self.test_data_dic["dataDic"] = { }
         self.training_sparMats_dic["target_cateID"] = target_cateID
         self.training_sparMats_dic["ratio"] = ratios
-        self.training_sparMats_dic["matrix"] = self.raw_sparMats_dic.copy()
+        # using copy.deepcopy() attributes to achieve deepcopy functions
+        # 拷贝一份原始的 矩阵数据，在分割数据集之前
+        self.training_sparMats_dic["matrix"] = copy.deepcopy(self.raw_sparMats_dic)
         self.test_data_dic["target_cateID"] = target_cateID
         self.test_data_dic["ratio"] = ratios
         print("Target_Cate is %d!" %target_cateID)
@@ -439,7 +455,7 @@ class WITF:
         print("Finished --> split_data_byRatios !")
         return True
     
-    def bak_split_data_byRatios(self):
+    def zoneBak_split_data_byRatios(self):
         """
             split the training data and test data by ratio and target_cateID
         """
@@ -501,7 +517,10 @@ class WITF:
             for index in range(len(row_NonZero)):
                 row = row_NonZero[index]
                 col = col_NonZero[index]
+                # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                # 设置观察到的评分的权重为1
                 self.ratings_weights_matrixs_dic[cateID][row,col] = 1
+                # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             print("Finished to set observation weight for cateID:%d!!" %cateID)
         return True
 
@@ -543,8 +562,12 @@ class WITF:
         #  Cate_num = len(self.cate_list)
         V_num = self.R_latent_feature_Num
         R_num = self.R_latent_feature_Num
+        # 创建一个随机的三维数组：(用户数，虚拟物品数，分类数)
         Y = np.random.rand(User_num,V_num,Cate_num)
         pbar = tqdm(range(User_num))
+        # 遍历每一个维度
+        # 通过CP decompostion 来计算 Y 的每一个元素
+        # 论文中 Formula 10 上面有公式 来详细计算 Y 的每一个元素
         for u in pbar:
         #  for u in range(User_num):
             pbar.set_description("Each User:")
@@ -555,7 +578,7 @@ class WITF:
                 #  for c in range(Cate_num):
                     C_c = self.C_Mats.getrow(c)#.toarray[0]
                     entry = U_u.multiply(V_v)
-                    entry = entry.multiply(C_c).sum()
+                    entry = entry.multiply(C_c).sum() # 点乘 Hadamard Product
                     Y[u][v][c] = entry
                     #  print("get_Y_n: Done userPos:%d,VPos:%d,CPos:%d!" %(u,v,c))
         self.Y_n_dic["Y_1"] = np.reshape(np.moveaxis(Y,0,0),(Y.shape[0], -1),order='F')

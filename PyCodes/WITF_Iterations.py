@@ -116,7 +116,7 @@ class WITF_Iterations:
 
 
 
-    def main_proceduce(self,iter_num=50,userCount=6682):
+    def zoneBak_main_proceduce(self,iter_num=50,userCount=6682):
         """
             main_proceduce for WITF_Iterations class
             1. add_noises(): add noise for each user
@@ -175,8 +175,9 @@ class WITF_Iterations:
         """
         print("----------------In new_main_proceduce Function--------------")
         # copy a data from self.raw_training_sparMats_dic
+        # 深拷贝 ：保证每一迭代都是从原始的训练集开始操作
         self.training_sparMats_dic = copy.deepcopy(self.raw_training_sparMats_dic)
-        print("Copy Raw TrainSets Finished!")
+        #  print("Copy Raw TrainSets Finished!")
         FBNorm_li = [ ]
         # 计算初始数据的 FBNorm
         ForBe_Norm = self.cal_ObjFunc() 
@@ -218,7 +219,7 @@ class WITF_Iterations:
         print("------------------------------------------------------------")
         return FBNorm_li
 
-    def main_proceduce_old(self,iter_num=5,userCount=6682):
+    def zoneBak_main_proceduce_old(self,iter_num=5,userCount=6682):
         """
             main_proceduce for WITF_Iterations class
             1. add_noises(): add noise for each user
@@ -254,7 +255,7 @@ class WITF_Iterations:
             self.training_sparMats_dic["matrix"][cateID] = new_mats * ratio
         return True
 
-    def assign_weights(self):
+    def zoneCond_assign_weights(self):
         """
             function to assgin weights to irregular tensor
             准备用 Gentic Algorithm 进行搜索 权重
@@ -263,7 +264,7 @@ class WITF_Iterations:
         pass
         return True
 
-    def sub_iterations_drafts(self,user_Count,m=1,n=1):
+    def zoneBak_sub_iterations_drafts(self,user_Count,m=1,n=1):
         """
             Functions for do the sub_iterations
         """
@@ -298,7 +299,7 @@ class WITF_Iterations:
         print("Finished Sub-Iteration(Old Version) with UserCount:%d !" %user_Count)
         return True
 
-    def Formula_Ui_23(self,num_K=5,user_pos=0):
+    def zoneBak_Formula_Ui_23(self,num_K=5,user_pos=0):
         """
             function for Formula 23 to update Ui for user i
         """
@@ -315,7 +316,7 @@ class WITF_Iterations:
         res_npa = res_mat.toarray()[0]
         return res_npa
 
-    def Formula_Ui_23_part1(self,num_K=5,user_pos=0):
+    def zoneBak_Formula_Ui_23_part1(self,num_K=5,user_pos=0):
         """
             function for calculate Formula 23 part_1
         """
@@ -377,7 +378,7 @@ class WITF_Iterations:
         return result_mats.tocsc()
 
 
-    def Formula_Ui_23_part2(self,num_K=5,user_pos=0):
+    def zoneBak_Formula_Ui_23_part2(self,num_K=5,user_pos=0):
     #  def Formula_Ui_23_part2(self,num_K,user_pos):
         """
             function to calculate the part2 of Formula 23
@@ -404,7 +405,7 @@ class WITF_Iterations:
             product[:,col_index] = col_mat
         return product
 
-    def Formula_Ck_24(self,num_N=10,cate_list=0):
+    def zoneBak_Formula_Ck_24(self,num_N=10,cate_list=0):
         """
             function for Formula 24 to update Ck for category k
         """
@@ -418,7 +419,7 @@ class WITF_Iterations:
         res_npa = res_mat.toarray()[0]
         return res_npa
 
-    def Formula_Ck_24_part2(self,num_N=10,cate_index=0):
+    def zoneBak_Formula_Ck_24_part2(self,num_N=10,cate_index=0):
         """
             function to calculate the Formula 24 part2
         """
@@ -432,7 +433,7 @@ class WITF_Iterations:
         res_mats = SSL_inv(res_mats)
         return res_mats
 
-    def Formula_Ck_24_part1(self,num_N=10,cate_index=0):
+    def zoneBak_Formula_Ck_24_part1(self,num_N=10,cate_index=0):
         """
             function to calculate the Formula 24 part1
         """
@@ -535,7 +536,7 @@ class WITF_Iterations:
         self.training_sparMats_dic["noise"] = True
         return True
 
-    def add_noises_bak(self):
+    def zoneBak_add_noises_bak(self):
         """
             add noises(virtual data) for each user in each category
         """
@@ -562,10 +563,11 @@ class WITF_Iterations:
     def sub_iterations_UVC(self,user_Count=6682,m=3,n=3):
         """
             Functions for do the sub_iterations
+            user_Count:用户总数, m,n : 自迭代的次数
         """
-        # The number of categories
         m = self.m_iter_time
         n = self.n_iter_time
+        # The number of categories
         num_K = len(self.cate_list)
         num_N = user_Count
         #  num_N = len(self.userPos_li)
@@ -602,9 +604,9 @@ class WITF_Iterations:
             pbar_m_cate.close()
             # Update the whole V by formula 25
             self.Update_V(num_K,num_N)
-        # sub iteration 2: Update Pk for each domian k using formula 22
         pbar_subIter_m.close()
         # -------------------------------------------------------------------------------
+        # sub iteration 2: Update Pk for each domian k using formula 22
         pbar_subIter_n = tqdm(range(n))
         #  for n_iter_time in range(n):
         for n_iter_time in pbar_subIter_n:
