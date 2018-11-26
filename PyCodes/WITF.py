@@ -429,7 +429,9 @@ class WITF:
         self.test_data_dic["target_cateID"] = target_cateID
         self.test_data_dic["ratio"] = ratios
         print("Target_Cate is %d!" %target_cateID)
-        target_sparMat = self.raw_sparMats_dic[target_cateID]
+        # using copy.deepcopy() attributes to achieve deepcopy functions
+        # 拷贝一份 目标分类 的原始数据
+        target_sparMat = copy.deepcopy(self.raw_sparMats_dic[target_cateID])
         # 找到所有的非零的 row_index and col_index
         row_NonZero = target_sparMat.nonzero()[0]
         col_NonZero = target_sparMat.nonzero()[1]
@@ -533,7 +535,7 @@ class WITF:
         for cateID in pbar_lv1:
         #  for cateID in self.ratings_weights_matrixs_dic:
             pbar_lv1.set_description("Each Cate:")
-            W_kij = self.ratings_weights_matrixs_dic[cateID]
+            W_kij = copy.deepcopy(self.ratings_weights_matrixs_dic[cateID])
             self.Wkij_dic[cateID] = {}
             pbar_lv2 = tqdm(range(len(self.userPos_li)))
             #  for user_pos in range(len(self.userPos_li)):
