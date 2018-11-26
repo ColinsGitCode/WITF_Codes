@@ -358,27 +358,27 @@ class WITF_Iterations:
         """
         result_mats = 0
         pbar_U_cate = tqdm(range(num_K))
-        #  for k in range(num_K):
+        V_Mats = copy.deepcopy(self.V_Mats)
+        C_Mats = copy.deepcopy(self.C_Mats)
+        # Deepcopy Operations
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         for k in pbar_U_cate:
             pbar_U_cate.set_description("Update U -- Cate :")
             cateID = self.cate_list[k]
-            C_k = self.C_Mats.getrow(k).toarray()[0]
+            C_k = C_Mats.getrow(k).toarray()[0]
             sigma_k = SM_diags(C_k)
-            P_k = self.P_k_dic[cateID]
-            #  P_k = self.P_k_dic[self.cate_list[k]]
-            #  W_kij = self.ratings_weights_matrixs_dic[cateID]
-            # user_pos means i
-            #  W_ki = W_kij.getrow(user_pos).toarray()[0]
-            #  omiga_ki = SM_diags(W_ki)
-            #  size = omiga_ki.shape[0]
-            #  I_omiga_ki = SM_identity(size)
-            #  omiga_ki = omiga_ki - I_omiga_ki
-            omiga_ki = self.Wkij_dic[cateID][user_pos]
-            mats = P_k.dot(self.V_Mats)
+            P_k = copy.deepcopy(self.P_k_dic[cateID])
+            # Deepcopy Operations
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            # 此处本来有 求 Wki (Omiga_ki) 的操作，现在放置于 子迭代 之前
+            omiga_ki = copy.deepcopy(self.Wkij_dic[cateID][user_pos])
+            # Deepcopy Operations
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            mats = P_k.dot(V_Mats)
             mats = sigma_k.dot(mats.T)
             mats = mats.dot(omiga_ki)
             mats = mats.dot(P_k)
-            mats = mats.dot(self.V_Mats)
+            mats = mats.dot(V_Mats)
             mats = mats.dot(sigma_k)
             result_mats = result_mats + mats
             #  print("**Upate U** : In Formula 23 part1 : Done Cate_index:%d !" %k)
@@ -473,32 +473,37 @@ class WITF_Iterations:
         """
         result_mats = 0
         pbar_C_user = tqdm(range(num_N))
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        V_Mats = copy.deepcopy(self.V_Mats)
+        U_Mats = copy.deepcopy(self.U_Mats)
+        # Deepcopy Operations
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         #  for i in range(num_N):
         for i in pbar_C_user:
             pbar_C_user.set_description("Update C --> User :")
             cateID = self.cate_list[cate_index]
-            U_i = self.U_Mats.getrow(i).toarray()[0]
+            U_i = U_Mats.getrow(i).toarray()[0]
             sigma_i = SM_diags(U_i)
-            P_k = self.P_k_dic[cateID]
-            #  W_kij = self.ratings_weights_matrixs_dic[cateID]
-            #  W_ki = W_kij.getrow(i).toarray()[0]
-            #  omiga_ki = SM_diags(W_ki)
-            #  size = omiga_ki.shape[0]
-            #  I_omiga_ki = SM_identity(size)
+            P_k = copy.deepcopy(self.P_k_dic[cateID])
+            # Deepcopy Operations
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            # 此处本来有 求 Wki (Omiga_ki) 的操作，现在放置于 子迭代 之前
             #  omiga_ki = omiga_ki - I_omiga_ki
-            omiga_ki = self.Wkij_dic[cateID][i]
-            mats = P_k.dot(self.V_Mats)
+            omiga_ki = copy.deepcopy(self.Wkij_dic[cateID][i])
+            # Deepcopy Operations
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            mats = P_k.dot(V_Mats)
             mats = sigma_i.dot(mats.T)
             mats = mats.dot(omiga_ki)
             mats = mats.dot(P_k)
-            mats = mats.dot(self.V_Mats)
+            mats = mats.dot(V_Mats)
             mats = mats.dot(sigma_i)
             result_mats = result_mats + mats
             #  print("**Upate C** : In Formula 24 part1 : Done UserPos:%d !" %i)
         pbar_C_user.close()
         return result_mats.tocsc()
 
-    def get_Y_n(self):
+    def zoneBak_get_Y_n(self):
         """
             function to get tensor Y mode-n unfolding
         """
@@ -578,7 +583,6 @@ class WITF_Iterations:
         # The number of categories
         num_K = len(self.cate_list)
         num_N = user_Count
-        #  num_N = len(self.userPos_li)
         # Pre-Computing Parts
         # sun iteration 1 : update U_i for each user
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -589,15 +593,21 @@ class WITF_Iterations:
             self.get_Y_n()
             # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             pbar_subIter_m.set_description("Sub-Iteration m ( Update U and C ) :")
+            # cal_Khatri_Rao() 放在这里计算，有些疑问（不确定对不对)
+            # 这里也算是一定程度的提前计算
             C_khaRao_V = self.cal_Khatri_Rao(self.C_Mats,self.V_Mats)
             V_khaRao_U = self.cal_Khatri_Rao(self.V_Mats,self.U_Mats)
+            # 这个公式的优先级，矩阵乘法 和 hadmard product 谁优先计算，需要再次确认
             CtCVtV_I = self.cal_AtA_BtB_I(self.C_Mats,self.V_Mats)
-            VtVUtU_I = self.cal_AtA_BtB_I(self.V_Mats,self.U_Mats)
+            #  VtVUtU_I = self.cal_AtA_BtB_I(self.V_Mats,self.U_Mats)
+            # 此处出现错误，应该是 UtUVtV_I 而不是 VtVUtU_I
+            UtUVtV_I = self.cal_AtA_BtB_I(self.U_Mats,self.V_Mats)
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             pbar_m_userPos = tqdm(range(num_N))
             #  for user_pos in range(num_N):
             for user_pos in pbar_m_userPos:
-                pbar_m_userPos.set_description("SubIter m --> Update U (user):")
                 # update row(user_pos) of U by formula 23
+                pbar_m_userPos.set_description("SubIter m --> Update U (user):")
                 U_i_npa = self.Formula_Ui_23_PreCom(num_K,user_pos,C_khaRao_V,CtCVtV_I)
                 self.U_Mats[user_pos,:] = U_i_npa
                 #  print("Update U_%d !" %user_pos)
@@ -610,12 +620,17 @@ class WITF_Iterations:
                 # update row(cate_index) of C by formula 24
                 num_N = user_Count
                 #  num_N = 1000
-                C_k_npa = self.Formula_Ck_24_PreCom(num_N,cate_index,V_khaRao_U,VtVUtU_I)
+                # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                # 此处出现错误，应该是 UtUVtV_I 而不是 VtVUtU_I
+                C_k_npa = self.Formula_Ck_24_PreCom(num_N,cate_index,V_khaRao_U,UtUVtV_I) #VtVUtU_I)
+                #  C_k_npa = self.Formula_Ck_24_PreCom(num_N,cate_index,V_khaRao_U,VtVUtU_I)
+                # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                 self.C_Mats[cate_index,:] = C_k_npa
                 #  print("Update C_%d !" %cate_index)
             pbar_m_cate.close()
             # Update the whole V by formula 25
             self.Update_V(num_K,num_N)
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         pbar_subIter_m.close()
         # -------------------------------------------------------------------------------
         # sub iteration 2: Update Pk for each domian k using formula 22
@@ -629,11 +644,16 @@ class WITF_Iterations:
         pbar_subIter_n.close()
         return True
 
-    def Formula_Ck_24_PreCom(self,num_N,cate_list,V_khaRao_U,VtVUtU_I):
+    def Formula_Ck_24_PreCom(self,num_N,cate_list,raw_V_khaRao_U,raw_VtVUtU_I):
         """
+            VtVUtU_I 本质上是 UtUVtV_I, 请注意
             function for Formula 24 to update Ck for category k
         """
-        npa_Y_3_k = self.Y_n_dic["Y_3"][cate_list]
+        V_khaRao_U = copy.deepcopy(raw_V_khaRao_U)
+        VtVUtU_I = copy.deepcopy(raw_VtVUtU_I)
+        npa_Y_3_k = copy.deepcopy(self.Y_n_dic["Y_3"][cate_list])
+        # Deepcopy Operations
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         length = npa_Y_3_k.shape[0]
         mat_Y_3_k = dok_matrix((1,length))
         mat_Y_3_k[0,:] = npa_Y_3_k
@@ -643,10 +663,12 @@ class WITF_Iterations:
         res_npa = res_mat.toarray()[0]
         return res_npa
 
-    def Formula_Ck_24_part2_PreCom(self,num_N,cate_index,VtVUtU_I):
+    def Formula_Ck_24_part2_PreCom(self,num_N,cate_index,raw_VtVUtU_I):
         """
+            VtVUtU_I 本质上是 UtUVtV_I, 请注意
             function to calculate the Formula 24 part2
         """
+        VtVUtU_I = copy.deepcopy(raw_VtVUtU_I)
         #  V_Mats = self.V_Mats
         #  U_Mats = self.U_Mats
         #  res_mat1 = ((U_Mats.T).dot(U_Mats))#.tocsc()  
@@ -659,11 +681,15 @@ class WITF_Iterations:
         res_mats = SSL_inv(res_mats)
         return res_mats
 
-    def Formula_Ui_23_PreCom(self,num_K,user_pos,C_khaRao_V,CtCVtV_I):
+    def Formula_Ui_23_PreCom(self,num_K,user_pos,raw_C_khaRao_V,raw_CtCVtV_I):
         """
             function for Formula 23 to update Ui for user i
         """
-        npa_Y_1_i = self.Y_n_dic["Y_1"][user_pos]
+        C_khaRao_V = copy.deepcopy(raw_C_khaRao_V)
+        CtCVtV_I = copy.deepcopy(raw_CtCVtV_I)
+        npa_Y_1_i = copy.deepcopy(self.Y_n_dic["Y_1"][user_pos])
+        # Deepcopy Operations
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         length = npa_Y_1_i.shape[0]
         mat_Y_1_i = dok_matrix((1,length))
         mat_Y_1_i[0,:] = npa_Y_1_i
@@ -673,31 +699,33 @@ class WITF_Iterations:
         res_npa = res_mat.toarray()[0]
         return res_npa
 
-    def Formula_Ui_23_part2_PreCom(self,num_K,user_pos,CtCVtV_I):
+    def Formula_Ui_23_part2_PreCom(self,num_K,user_pos,raw_CtCVtV_I):
     #  def Formula_Ui_23_part2(self,num_K,user_pos):
         """
             function to calculate the part2 of Formula 23
         """
-        #  C_Mats = self.C_Mats#.tocsc()
-        #  V_Mats = self.V_Mats#.tocsc()
-        #  res_mat1 = ((C_Mats.T).dot(C_Mats))#.tocsc()  
-        #  res_mat2 = ((V_Mats.T).dot(V_Mats))#.tocsc()  
-        #  res_mats = (res_mat1.multiply(res_mat2)).tocsc()
-        #  I_RR = SM_identity(self.R_latent_feature_Num,format='csc')
-        #  res_mats = res_mats + I_RR + self.Formula_Ui_23_part1(num_K,user_pos)
+        CtCVtV_I = copy.deepcopy(raw_CtCVtV_I)
+        # Deepcopy Operations
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         res_mats = CtCVtV_I + self.Formula_Ui_23_part1_PreCom(num_K,user_pos)
         #  res_mats = CtCVtV_I + self.Formula_Ui_23_part1(num_K,user_pos)
         res_mats = SSL_inv(res_mats)
         return res_mats
 
-    def cal_AtA_BtB_I(self,A,B):
-        C_Mats = A
-        V_Mats = B
+    def cal_AtA_BtB_I(self,A,B,Lamda_UCV=1):
+        """
+            Lamda_UCV : Regular Parameters
+            现在暂时设置为 1，即没有任何实际效果
+            现在同时也增加 deepcopy() 操作
+        """
+        C_Mats = copy.deepcopy(A)
+        V_Mats = copy.deepcopy(B)
+        # 这个公式的优先级，矩阵乘法 和 hadmard product 谁优先计算，需要再次确认
         res_mat1 = ((C_Mats.T).dot(C_Mats))#.tocsc()  
         res_mat2 = ((V_Mats.T).dot(V_Mats))#.tocsc()  
         res_mats = (res_mat1.multiply(res_mat2)).tocsc()
         I_RR = SM_identity(self.R_latent_feature_Num,format='csc')
-        res_mats = res_mats + I_RR 
+        res_mats = res_mats + Lamda_UCV*I_RR 
         return res_mats
 
     def analy_trainSets(self):
@@ -797,10 +825,10 @@ class WITF_Iterations:
         """
             Update the V as a whole
         """
-        C = self.C_Mats
-        U = self.U_Mats
+        C = copy.deepcopy(self.C_Mats)
+        U = copy.deepcopy(self.U_Mats)
         C_rhaRao_U = self.cal_Khatri_Rao(C, U)
-        Y2 = self.Y_n_dic["Y_2"]
+        Y2 = copy.deepcopy(self.Y_n_dic["Y_2"])
         Y2_mats = np.asmatrix(Y2)
         Y2_mats = coo_matrix(Y2_mats)
         Y2CU = Y2_mats.dot(C_rhaRao_U)
@@ -979,6 +1007,7 @@ class WITF_Iterations:
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             已经转移至 WITF_Iterations class 中
             在 self.sub_iterations_UVC()中调用
+            计算速度很慢，考虑改进，提高效率 ！！！！
         """
         #  print("Start --> get_Y_n")
         User_num = len(self.userPos_li)
@@ -992,15 +1021,20 @@ class WITF_Iterations:
         # 遍历每一个维度
         # 通过CP decompostion 来计算 Y 的每一个元素
         # 论文中 Formula 10 上面有公式 来详细计算 Y 的每一个元素
+        U_Mats = copy.deepcopy(self.U_Mats)
+        V_Mats = copy.deepcopy(self.V_Mats)
+        C_Mats = copy.deepcopy(self.C_Mats)
+        # Deepcopy Operations
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         for u in pbar:
         #  for u in range(User_num):
             pbar.set_description("get_Y_n() -->Each User:")
-            U_u = self.U_Mats.getrow(u)#.toarray[0]
+            U_u = U_Mats.getrow(u)#.toarray[0]
             for v in range(V_num): 
-                V_v = self.V_Mats.getrow(v)#.toarray[0]
+                V_v = V_Mats.getrow(v)#.toarray[0]
                 for c in range(Cate_num):
                 #  for c in range(Cate_num):
-                    C_c = self.C_Mats.getrow(c)#.toarray[0]
+                    C_c = C_Mats.getrow(c)#.toarray[0]
                     entry = U_u.multiply(V_v)
                     entry = entry.multiply(C_c).sum() # 点乘 Hadamard Product
                     Y[u][v][c] = entry
@@ -1032,16 +1066,16 @@ savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/Revi
 # print(savedir)
 #txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
 IWITF = WITF_Iterations(txtfile,savedir,1,1)
-#  IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
-print("Created the instant of WITF_Iterations class which named IWITF!")
-starttime = datetime.datetime.now()
+#  #  IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
+#  print("Created the instant of WITF_Iterations class which named IWITF!")
+#  starttime = datetime.datetime.now()
 
-# main_proceduce 函数，程序的主流程，即算法的 Iteration 部分
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-IWITF.new_main_proceduce(IterTimes,UserNumbers)
-endtime = datetime.datetime.now()
-executetime = (endtime - starttime).seconds
-print("Finished All !!!!, and the Execute Time is %d" %executetime)
+#  # main_proceduce 函数，程序的主流程，即算法的 Iteration 部分
+#  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  IWITF.new_main_proceduce(IterTimes,UserNumbers)
+#  endtime = datetime.datetime.now()
+#  executetime = (endtime - starttime).seconds
+#  print("Finished All !!!!, and the Execute Time is %d" %executetime)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
