@@ -160,8 +160,8 @@ class WITF:
         self.set_observation_weights()
         print("Finished set_observation_weights() Functions")
         # 8. 事先计算Wki,减少迭代的计算时间
-        self.cal_Wki()
-        print("Finished cal_Wki() Functions")
+        # self.cal_Wki()
+        #  print("Finished cal_Wki() Functions")
         # 9, 存储Precomputed的所有数据
         # ---> 包含计算 Y_n_dic，事先计算的数据，减少迭代的计算时间
         self.save_PreComputed_data()
@@ -175,7 +175,8 @@ class WITF:
         saveData = { }
         saveData["trainSets"] = self.training_sparMats_dic
         saveData["ratingWeights"] = self.ratings_weights_matrixs_dic
-        saveData["omiga_ki"] = self.Wkij_dic
+        # omiga_ki 的计算移动至 WITF_Iteration class
+        #  saveData["omiga_ki"] = self.Wkij_dic
         saveData["testSets"] = self.test_data_dic
         saveData["targetCateID"] = self.target_cateID
         saveData["ratios"] = self.ratios
@@ -193,9 +194,10 @@ class WITF:
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         # 计算 Y 的矩阵展开，考虑消除，放入到每一次的 自迭代中进行执行
         # 可能比较费时间
-        self.get_Y_n()
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        saveData["Y_n"] = self.Y_n_dic
+        # self.get_Y_n()
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        # saveData["Y_n"] = self.Y_n_dic
         #  filename = "/home/Colin/GitHubFiles/new_WITF_data/R5_init1to100_preCom_Data/new_WITF_precomputed_Data.txt"
         #  filename = "/home/Colin/GitHubFiles/new_WITF_data/new_WITF_precomputed_Data.txt"
         #filename = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
@@ -528,7 +530,11 @@ class WITF:
 
     def cal_Wki(self):
         """
-            事先计算Wki,减少迭代的计算时间
+            事先计算Wki,其实是omiga_ki (每个user在每个分类都有一个）,减少迭代的计算时间
+            此函数考虑 ：应该放在每次迭代的开始。自迭代开始之前
+            因为每次加入噪声之后，都会omigaki都会发生改变，需要重新计算
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            之后还应该考虑：噪声数据的权重不为1的情况
         """
         print("Start --> cal_Wki")
         pbar_lv1 = tqdm(self.ratings_weights_matrixs_dic.keys())
@@ -557,6 +563,9 @@ class WITF:
         """
             function to get tensor Y mode-n unfolding
             事先计算，减少迭代的计算时间
+            此函数考虑 ：应该放在每次迭代的开始，自迭代开始之后
+            Y_n 数据应该由 每次子迭代开始之前，由最新更新的 U,V,C 来计算
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         """
         print("Start --> get_Y_n")
         User_num = len(self.userPos_li)
@@ -617,22 +626,23 @@ witf = WITF(raw_data=raw_data_file,SaveFile=filename,R_latent_feature_Num=R,targ
 # ---------------------------------------------------------------------------------
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-# witf.main_proceduce()
+witf.main_proceduce()
 
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-witf.split_data_byRatios()
-witf.cal_stats_for_trainSets()
-witf.cal_users_noisePos()
-# 需要认真考虑这个初始化函数 : randomly_init_U_C_V()
-witf.randomly_init_U_C_V()
-print("Finshed randomly_init_U_C_V() Functions")
-witf.find_Pk()
-witf.init_ratings_weights_matrix()
-witf.set_observation_weights()
-witf.cal_Wki()
-witf.save_PreComputed_data()
-print("Finished Test WITF.py!")
+#  witf.split_data_byRatios()
+#  witf.cal_stats_for_trainSets()
+#  witf.cal_users_noisePos()
+#  # 需要认真考虑这个初始化函数 : randomly_init_U_C_V()
+#  witf.randomly_init_U_C_V()
+#  print("Finshed randomly_init_U_C_V() Functions")
+#  witf.find_Pk()
+#  witf.init_ratings_weights_matrix()
+#  witf.set_observation_weights()
+#  # witf.cal_Wki() # should be moved into WITF_Iterations class
+#  # Inside function save_PreComputed_data():function get_Y_n() insided, # should be moved into WITF_Iterations Class
+#  witf.save_PreComputed_data()
+#  print("Finished Test WITF.py!")
 
 
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

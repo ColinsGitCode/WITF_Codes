@@ -98,7 +98,9 @@ class WITF_Iterations:
         self.U_Mats = saveData["U"] 
         self.V_Mats = saveData["V"] 
         self.C_Mats = saveData["C"] 
-        self.Wkij_dic = saveData["omiga_ki"] 
+        # 目前已经不再 WITF.py 中计算,初始应该为空字典，{ }
+        #  self.Wkij_dic = saveData["omiga_ki"] 
+        self.Wkij_dic = { }
         #  self.userPos_ratings_itemPos = saveData["userPos_ratings_itemPos"]
         # ****************************************************************************
         # ****************************************************************************
@@ -112,7 +114,9 @@ class WITF_Iterations:
         #  self.Y_n_dic = { }
         #  FILENAME = "/home/Colin/txtData/forWITFs/Y_n_dic.txt"
         #  self.Y_n_dic = load_from_txt(FILENAME)
-        self.Y_n_dic = saveData["Y_n"]
+        # 目前已经不再 WITF.py 中计算,初始应该为空字典，{ }
+        #  self.Y_n_dic = saveData["Y_n"]
+        self.Y_n_dic = { }
 
 
 
@@ -194,11 +198,15 @@ class WITF_Iterations:
             # # 拷贝一份原始的训练集，以免原始的训练集被改变
             self.training_sparMats_dic = copy.deepcopy(self.raw_training_sparMats_dic)
             # # 加入噪声进入训练集,每一次迭代加入的噪声位置都不同
-            self.add_noise(iter_times)
+            self.add_noises(iter_times)
             # # 设置 每一个领域 的 w_k 权重
             self.assign_weights_costSensitive(alpha_k=1)
             # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            # # 开始自迭代过程, Revise 截止到这里，until Nov.20th
+            # 新加入
+            # 开始计算 Omiga_ki, 放在子迭代开始之前
+            self.cal_Wki()
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            # # 开始子迭代过程, Revise 截止到这里，until Nov.20th
             self.sub_iterations_UVC(userCount)
             # 4. 计算每次的迭代之后的 FBNorm
             ForBe_Norm = self.cal_ObjFunc() 
@@ -573,9 +581,13 @@ class WITF_Iterations:
         #  num_N = len(self.userPos_li)
         # Pre-Computing Parts
         # sun iteration 1 : update U_i for each user
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         pbar_subIter_m = tqdm(range(m))
         #  for m_iter_time in range(m):
         for m_iter_time in pbar_subIter_m:
+            # 新增加 : 在每一次自迭代开始之前，依照最新的U,V，C来计算 Y_n 
+            self.get_Y_n()
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             pbar_subIter_m.set_description("Sub-Iteration m ( Update U and C ) :")
             C_khaRao_V = self.cal_Khatri_Rao(self.C_Mats,self.V_Mats)
             V_khaRao_U = self.cal_Khatri_Rao(self.V_Mats,self.U_Mats)
@@ -924,6 +936,81 @@ class WITF_Iterations:
         pass
         return True
 
+    def cal_Wki(self):
+        """
+            事先计算Wki,其实是omiga_ki (每个user在每个分类都有一个）,减少迭代的计算时间
+            此函数考虑 ：应该放在每次迭代的开始。自迭代开始之前
+            因为每次加入噪声之后，都会omigaki都会发生改变，需要重新计算
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            之后还应该考虑：噪声数据的权重不为1的情况
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            已经转移到 WITF_Iterations Class 中
+            在 self.new_main_proceduce() 的主迭代循环中 调用 
+        """
+        #  print("Start --> cal_Wki")
+        pbar_lv1 = tqdm(self.ratings_weights_matrixs_dic.keys())
+        for cateID in pbar_lv1:
+        #  for cateID in self.ratings_weights_matrixs_dic:
+            pbar_lv1.set_description("cal_Wki(Omiga_ki) -->Each Cate:")
+            W_kij = copy.deepcopy(self.ratings_weights_matrixs_dic[cateID])
+            self.Wkij_dic[cateID] = {}
+            pbar_lv2 = tqdm(range(len(self.userPos_li)))
+            #  for user_pos in range(len(self.userPos_li)):
+            for user_pos in pbar_lv2:
+                pbar_lv2.set_description("cal_Wki(Omiga_ki) -->Each User:")
+                W_ki = W_kij.getrow(user_pos).toarray()[0]
+                omiga_ki = SM_diags(W_ki)
+                size = omiga_ki.shape[0]
+                I_omiga_ki = SM_identity(size)
+                omiga_ki = omiga_ki - I_omiga_ki
+                self.Wkij_dic[cateID][user_pos] = omiga_ki
+                #  print("Finished omiga_ki with cateID:%d,userPos:%d !" %(cateID,user_pos))
+            pbar_lv2.close()
+        pbar_lv1.close()
+        #  print("Finished --> cal_Wki")
+        return True        
+
+    def get_Y_n(self):
+        """
+            function to get tensor Y mode-n unfolding
+            事先计算，减少迭代的计算时间
+            此函数考虑 ：应该放在每次迭代的开始，自迭代开始之后
+            Y_n 数据应该由 每次子迭代开始之前，由最新更新的 U,V,C 来计算
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            已经转移至 WITF_Iterations class 中
+            在 self.sub_iterations_UVC()中调用
+        """
+        #  print("Start --> get_Y_n")
+        User_num = len(self.userPos_li)
+        Cate_num = 5
+        #  Cate_num = len(self.cate_list)
+        V_num = self.R_latent_feature_Num
+        R_num = self.R_latent_feature_Num
+        # 创建一个随机的三维数组：(用户数，虚拟物品数，分类数)
+        Y = np.random.rand(User_num,V_num,Cate_num)
+        pbar = tqdm(range(User_num))
+        # 遍历每一个维度
+        # 通过CP decompostion 来计算 Y 的每一个元素
+        # 论文中 Formula 10 上面有公式 来详细计算 Y 的每一个元素
+        for u in pbar:
+        #  for u in range(User_num):
+            pbar.set_description("get_Y_n() -->Each User:")
+            U_u = self.U_Mats.getrow(u)#.toarray[0]
+            for v in range(V_num): 
+                V_v = self.V_Mats.getrow(v)#.toarray[0]
+                for c in range(Cate_num):
+                #  for c in range(Cate_num):
+                    C_c = self.C_Mats.getrow(c)#.toarray[0]
+                    entry = U_u.multiply(V_v)
+                    entry = entry.multiply(C_c).sum() # 点乘 Hadamard Product
+                    Y[u][v][c] = entry
+                    #  print("get_Y_n: Done userPos:%d,VPos:%d,CPos:%d!" %(u,v,c))
+        self.Y_n_dic["Y_1"] = np.reshape(np.moveaxis(Y,0,0),(Y.shape[0], -1),order='F')
+        self.Y_n_dic["Y_2"] = np.reshape(np.moveaxis(Y,1,0),(Y.shape[1], -1),order='F')
+        self.Y_n_dic["Y_3"] = np.reshape(np.moveaxis(Y,2,0),(Y.shape[2], -1),order='F')
+        pbar.close()
+        #  print("Finished --> get_Y_n")
+        return True
 
 # ------------------------------------------------------------------------------------------------------
 # main functions
@@ -937,22 +1024,24 @@ R = 5
 UserNumbers = 2403
 IterTimes = 20
 mn = 3
+
 txtfile = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
 #  txtfile = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init1to5_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
 savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(IterTimes) 
 # print(txtfile)
 # print(savedir)
 #txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
-IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
+IWITF = WITF_Iterations(txtfile,savedir,1,1)
+#  IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
 print("Created the instant of WITF_Iterations class which named IWITF!")
 starttime = datetime.datetime.now()
 
 # main_proceduce 函数，程序的主流程，即算法的 Iteration 部分
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# IWITF.main_proceduce(IterTimes,UserNumbers)
-#  endtime = datetime.datetime.now()
-#  executetime = (endtime - starttime).seconds
-#  print("Finished All !!!!, and the Execute Time is %d" %executetime)
+IWITF.new_main_proceduce(IterTimes,UserNumbers)
+endtime = datetime.datetime.now()
+executetime = (endtime - starttime).seconds
+print("Finished All !!!!, and the Execute Time is %d" %executetime)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
