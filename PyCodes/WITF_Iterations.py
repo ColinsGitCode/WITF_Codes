@@ -1064,32 +1064,33 @@ class WITF_Iterations:
 # ------------------------------------------------------------------------------------------------------
 # main functions
 # ------------------------------------------------------------------------------------------------------
-U = 10
-I = 10 
-init_left = 1
-init_right = 6
-TC = 4
-R = 5
-UserNumbers = 2403
-IterTimes = 20
-mn = 3
 
-txtfile = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
-#  txtfile = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init1to5_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
-savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(IterTimes) 
-# ----------------------------------------------------------------
-#  IWITF = WITF_Iterations(txtfile,savedir,1,1)
-IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
+#  U = 10
+#  I = 10 
+#  init_left = 1
+#  init_right = 6
+#  TC = 4
+#  R = 5
+#  UserNumbers = 2403
+#  IterTimes = 20
+#  mn = 3
 
-starttime = datetime.datetime.now()
+#  txtfile = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
+#  #  txtfile = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init1to5_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
+#  savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(IterTimes) 
+#  # ----------------------------------------------------------------
+#  #  IWITF = WITF_Iterations(txtfile,savedir,1,1)
+#  IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
 
-# main_proceduce 函数，程序的主流程，即算法的 Iteration 部分
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-IWITF.new_main_proceduce(IterTimes,UserNumbers)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-endtime = datetime.datetime.now()
-executetime = (endtime - starttime).seconds
-print("Finished All !!!!, and the Execute Time is %d" %executetime)
+#  starttime = datetime.datetime.now()
+
+#  # main_proceduce 函数，程序的主流程，即算法的 Iteration 部分
+#  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  IWITF.new_main_proceduce(IterTimes,UserNumbers)
+#  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  endtime = datetime.datetime.now()
+#  executetime = (endtime - starttime).seconds
+#  print("Finished All !!!!, and the Execute Time is %d" %executetime)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

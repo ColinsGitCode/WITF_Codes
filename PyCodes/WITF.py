@@ -606,27 +606,27 @@ class WITF:
 # ================================================================================================
 #   Main Fucntions
 # ================================================================================================
-U = 10
-I = 10 
-init_left = 1
-init_right = 6
-TC = 4
-R = 5
-Iter_Times = 20
-Noise_Count_PerIter = 2 
+#  U = 10
+#  I = 10 
+#  init_left = 1
+#  init_right = 6
+#  TC = 4
+#  R = 5
+#  Iter_Times = 20
+#  Noise_Count_PerIter = 2 
 
-raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User" + str(U) + "_Item" + str(I) + "/new_raw_data_for_WITF_py.txt"
-#  raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt"
+#  raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User" + str(U) + "_Item" + str(I) + "/new_raw_data_for_WITF_py.txt"
+#  #  raw_data_file = "/home/Colin/GitHubFiles/new_WITF_data/Raw_Datasets/User10_Item10/new_raw_data_for_WITF_py.txt"
 
-filename = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
-#  filename = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init50to60_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
-witf = WITF(raw_data=raw_data_file,SaveFile=filename,R_latent_feature_Num=R,target_cateID=TC,init_range=(init_left,init_right),noiseCount=Noise_Count_PerIter,add_noise_times=Iter_Times)
-# ---------------------------------------------------------------------------------
-# WITF Class Main Procedures
-# ---------------------------------------------------------------------------------
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#  filename = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
+#  #  filename = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init50to60_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
+#  witf = WITF(raw_data=raw_data_file,SaveFile=filename,R_latent_feature_Num=R,target_cateID=TC,init_range=(init_left,init_right),noiseCount=Noise_Count_PerIter,add_noise_times=Iter_Times)
+#  # ---------------------------------------------------------------------------------
+#  # WITF Class Main Procedures
+#  # ---------------------------------------------------------------------------------
+#  # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-witf.main_proceduce()
+#  witf.main_proceduce()
 
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
