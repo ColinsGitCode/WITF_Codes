@@ -821,9 +821,11 @@ class WITF_Iterations:
             Mats = scipy.sparse.hstack([Mats,col_mat_list[idx]])
         return Mats
 
-    def Update_V(self,K_num=5,N_num=6682):
+    def Update_V(self,K_num=5,N_num=6682,Lamda_UCV=1):
         """
             Update the V as a whole
+            Add Lamda_UCV : Regular Parameters
+            set as : 1 (default)
         """
         C = copy.deepcopy(self.C_Mats)
         U = copy.deepcopy(self.U_Mats)
@@ -839,7 +841,7 @@ class WITF_Iterations:
         CtCUtU = CtC.multiply(UtU)
         size = CtCUtU.shape[0]
         I = SM_identity(size)
-        CtCUtU_I = CtCUtU + I
+        CtCUtU_I = CtCUtU + Lamda_UCV * I
         CtCUtU_kron_I = SM_kron(CtCUtU_I,I)
         #  print("Finished CtCUtU_kron_I !")
        	# print(CtCUtU_kron_I)
@@ -857,17 +859,23 @@ class WITF_Iterations:
         """
             Calate the SUMMARY K,N Parts
         """
-        U = self.U_Mats
+        U = copy.deepcopy(self.U_Mats)
+        # Deepcopy Operations
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
         pbar_V_cate = tqdm(range(K))
         #  for k in range(K):
         for k in pbar_V_cate:
             pbar_V_cate.set_description("Update V -- Each Cate:")
             cateID = self.cate_list[k]
-            P_k = self.P_k_dic[cateID]
+            P_k = copy.deepcopy(self.P_k_dic[cateID])
+            # Deepcopy Operations
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
             P_k_t = P_k.T
             C_k = self.C_Mats.getrow(k).toarray()[0]
             sigma_k = SM_diags(C_k)
-            W_kij = self.ratings_weights_matrixs_dic[cateID]
+            W_kij = copy.deepcopy(self.ratings_weights_matrixs_dic[cateID])
+            # Deepcopy Operations
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
             res = 0
             pbar_V_user = tqdm(range(N))
             #  for i in range(N):
@@ -875,11 +883,12 @@ class WITF_Iterations:
                 pbar_V_user.set_description("Update V -- Each User:")
                 U_i = U[i]
                 U_i_t = U_i.T
-               	omiga_ki = self.Wkij_dic[cateID][i]
+               	omiga_ki = copy.deepcopy(self.Wkij_dic[cateID][i])
+                # Deepcopy Operations
+                # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
                 Sk_Uit = sigma_k.dot(U_i_t)
                 Sk_Uit_Ui = Sk_Uit.dot(U_i)
                 Sk_Uit_Ui_Sk = Sk_Uit_Ui.dot(sigma_k)
-                # Pkt_Oki_Pk parts
                 Pkt_Oki = P_k_t.dot(omiga_ki)
                 Pkt_Oki_Pk = Pkt_Oki.dot(P_k)
                 res = res + SM_kron(Sk_Uit_Ui_Sk,Pkt_Oki_Pk)
@@ -894,17 +903,23 @@ class WITF_Iterations:
         """
         cate_list = self.cate_list
         pbar_Pk_cate = tqdm(range(len(cate_list)))
+        V_Mats = copy.deepcopy(self.V_Mats)
+        U_Mats = copy.deepcopy(self.U_Mats)
+        # Deepcopy Operations
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         #  for cate_index in range(len(cate_list)):
         for cate_index in pbar_Pk_cate:
             pbar_Pk_cate.set_description("Update Pk --> cate:")
             cateID = cate_list[cate_index]
-            X_k = self.training_sparMats_dic["matrix"][cateID]
+            X_k = copy.deepcopy(self.training_sparMats_dic["matrix"][cateID])
+            # Deepcopy Operations
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             C_k_row = self.C_Mats.getrow(cate_index).toarray()[0]
             Sigma_k = SM_diags(C_k_row)
             SVD_mats = X_k.T
-            SVD_mats = SVD_mats.dot(self.U_Mats)
+            SVD_mats = SVD_mats.dot(U_Mats)
             SVD_mats = SVD_mats.dot(Sigma_k)
-            SVD_mats = SVD_mats.dot(self.V_Mats.T)
+            SVD_mats = SVD_mats.dot(V_Mats.T)
             # SVD R select questions??
             #  A_r, sigma_r, B_r_t = SSL_svds(SVD_mats)
             A_r, sigma_r, B_r_t = SSL_svds(SVD_mats,k=self.R_latent_feature_Num-1)
@@ -1062,20 +1077,19 @@ mn = 3
 txtfile = "/home/Colin/GitHubFiles/U" + str(U) + "I" + str(I) + "_PreCom_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_preCom_Data/new_WITF_precomputed_Data.txt"
 #  txtfile = "/home/Colin/GitHubFiles/U10I10_PreCom_Data/R5_init1to5_U10I10_TC17_preCom_Data/new_WITF_precomputed_Data.txt"
 savedir = "/home/Colin/txtData/U" + str(U) + "I" + str(I) + "_Iterated_Data/Revised_WITF/R" + str(R) + "_init" + str(init_left) + "to" + str(init_right) + "_U" + str(U) + "I" + str(I) + "_TC" + str(TC) + "_mn" + str(mn) + "_Iter" + str(IterTimes) 
-# print(txtfile)
-# print(savedir)
-#txtfile = "/home/Colin/txtData/forWITFs/WITF_Pre_Computed_Data.txt"
-IWITF = WITF_Iterations(txtfile,savedir,1,1)
-#  #  IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
-#  print("Created the instant of WITF_Iterations class which named IWITF!")
-#  starttime = datetime.datetime.now()
+# ----------------------------------------------------------------
+#  IWITF = WITF_Iterations(txtfile,savedir,1,1)
+IWITF = WITF_Iterations(txtfile,savedir,mn,mn)
 
-#  # main_proceduce 函数，程序的主流程，即算法的 Iteration 部分
-#  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#  IWITF.new_main_proceduce(IterTimes,UserNumbers)
-#  endtime = datetime.datetime.now()
-#  executetime = (endtime - starttime).seconds
-#  print("Finished All !!!!, and the Execute Time is %d" %executetime)
+starttime = datetime.datetime.now()
+
+# main_proceduce 函数，程序的主流程，即算法的 Iteration 部分
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+IWITF.new_main_proceduce(IterTimes,UserNumbers)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+endtime = datetime.datetime.now()
+executetime = (endtime - starttime).seconds
+print("Finished All !!!!, and the Execute Time is %d" %executetime)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
